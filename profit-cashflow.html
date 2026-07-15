@@ -1,0 +1,1441 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>利润与现金流量 - 可研报告编写工具</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: "Microsoft YaHei", "PingFang SC", sans-serif;
+            background: #f5f7fa;
+            color: #333;
+            min-height: 100vh;
+        }
+        .top-nav {
+            height: 60px;
+            background: #1a5f7a;
+            color: #fff;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 24px;
+            position: fixed;
+            top: 0; left: 0; right: 0;
+            z-index: 1000;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+        }
+        .top-nav h1 { font-size: 18px; font-weight: 600; }
+        .top-nav .nav-actions { display: flex; gap: 12px; }
+        .container {
+            display: flex;
+            padding-top: 60px;
+            min-height: 100vh;
+        }
+        .sidebar {
+            width: 240px;
+            background: #fff;
+            border-right: 1px solid #e0e0e0;
+            position: fixed;
+            top: 60px; bottom: 0; left: 0;
+            overflow-y: auto;
+            z-index: 100;
+        }
+        .sidebar .menu-group { padding: 16px 0; border-bottom: 1px solid #f0f0f0; }
+        .sidebar .menu-title {
+            padding: 0 20px 8px;
+            font-size: 12px;
+            color: #999;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        .sidebar a {
+            display: block;
+            padding: 10px 20px 10px 32px;
+            color: #333;
+            text-decoration: none;
+            font-size: 14px;
+            transition: all 0.2s;
+            border-left: 3px solid transparent;
+        }
+        .sidebar a:hover, .sidebar a.active {
+            background: rgba(26,95,122,0.06);
+            color: #1a5f7a;
+            border-left-color: #1a5f7a;
+        }
+        .main-content {
+            margin-left: 240px;
+            flex: 1;
+            padding: 24px;
+            max-width: calc(100vw - 240px);
+        }
+        .page-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 24px;
+        }
+        .page-header h2 { font-size: 22px; color: #1a5f7a; }
+        .card {
+            background: #fff;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            margin-bottom: 24px;
+            overflow: hidden;
+        }
+        .card-header {
+            padding: 16px 20px;
+            background: linear-gradient(135deg, #1a5f7a, #159895);
+            color: #fff;
+            font-size: 16px;
+            font-weight: 600;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .card-body { padding: 20px; overflow-x: auto; }
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 8px 16px;
+            border-radius: 4px;
+            border: none;
+            cursor: pointer;
+            font-size: 14px;
+            font-family: inherit;
+            transition: all 0.2s;
+        }
+        .btn-primary {
+            background: #1a5f7a;
+            color: #fff;
+        }
+        .btn-primary:hover { background: #134a5e; }
+        .btn-secondary {
+            background: #fff;
+            color: #1a5f7a;
+            border: 1px solid #1a5f7a;
+        }
+        .btn-secondary:hover { background: rgba(26,95,122,0.06); }
+        .btn-success {
+            background: #57c5b6;
+            color: #fff;
+        }
+        .btn-success:hover { background: #45b0a2; }
+        .btn-group { display: flex; gap: 8px; flex-wrap: wrap; }
+        .tab-bar {
+            display: flex;
+            border-bottom: 2px solid #e0e0e0;
+            margin-bottom: 20px;
+            gap: 4px;
+        }
+        .tab-btn {
+            padding: 10px 20px;
+            background: none;
+            border: none;
+            border-bottom: 2px solid transparent;
+            margin-bottom: -2px;
+            cursor: pointer;
+            font-size: 14px;
+            color: #666;
+            font-family: inherit;
+            transition: all 0.2s;
+        }
+        .tab-btn.active {
+            color: #1a5f7a;
+            border-bottom-color: #1a5f7a;
+            font-weight: 600;
+        }
+        .tab-btn:hover { color: #1a5f7a; }
+        .tab-panel { display: none; }
+        .tab-panel.active { display: block; }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 13px;
+        }
+        th, td {
+            padding: 10px 8px;
+            text-align: center;
+            border: 1px solid #e0e0e0;
+        }
+        th {
+            background: #1a5f7a;
+            color: #fff;
+            font-weight: 600;
+            white-space: nowrap;
+        }
+        tr:nth-child(even) { background: #fafbfc; }
+        tr:hover { background: #f0f7ff; }
+        td:first-child, th:first-child {
+            text-align: left;
+            min-width: 180px;
+            padding-left: 12px;
+        }
+        .num { font-family: "Consolas", monospace; text-align: right; }
+        .num.neg { color: #f5222d; }
+        .section-title {
+            font-size: 15px;
+            font-weight: 600;
+            color: #1a5f7a;
+            margin: 16px 0 8px;
+            padding-bottom: 6px;
+            border-bottom: 1px dashed #e0e0e0;
+        }
+        .info-row {
+            display: flex;
+            gap: 24px;
+            flex-wrap: wrap;
+            margin-bottom: 12px;
+        }
+        .info-item { font-size: 13px; color: #666; }
+        .info-item strong { color: #333; }
+        .highlight { background: #e6f7ff; font-weight: 600; }
+        .total-row { background: #e6f7ff !important; font-weight: 600; }
+        .subtotal-row { background: #f6ffed !important; font-weight: 600; }
+        .input-group {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+        .input-group label { font-size: 13px; color: #666; min-width: 80px; }
+        .input-group input, .input-group select {
+            height: 36px;
+            padding: 0 10px;
+            border: 1px solid #e0e0e0;
+            border-radius: 4px;
+            font-size: 14px;
+            font-family: inherit;
+            width: 150px;
+        }
+        .input-group input:focus, .input-group select:focus {
+            outline: none;
+            border-color: #1a5f7a;
+            box-shadow: 0 0 0 2px rgba(26,95,122,0.1);
+        }
+        .summary-cards {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+        .summary-card {
+            background: #fff;
+            border-radius: 8px;
+            padding: 16px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            border-left: 4px solid #1a5f7a;
+        }
+        .summary-card .label { font-size: 12px; color: #999; margin-bottom: 4px; }
+        .summary-card .value { font-size: 20px; font-weight: 600; color: #1a5f7a; font-family: "Consolas", monospace; }
+        .summary-card .unit { font-size: 12px; color: #999; margin-left: 4px; }
+        .toast {
+            position: fixed;
+            bottom: 24px;
+            right: 24px;
+            background: #1a5f7a;
+            color: #fff;
+            padding: 12px 20px;
+            border-radius: 4px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            z-index: 2000;
+            opacity: 0;
+            transform: translateY(20px);
+            transition: all 0.3s;
+        }
+        .toast.show { opacity: 1; transform: translateY(0); }
+        .empty-state {
+            text-align: center;
+            padding: 40px;
+            color: #999;
+        }
+        .empty-state svg { margin-bottom: 16px; opacity: 0.5; }
+        .sticky-col { position: sticky; left: 0; background: inherit; z-index: 10; }
+        th.sticky-col { background: #1a5f7a; }
+        @media (max-width: 1200px) {
+            .sidebar { display: none; }
+            .main-content { margin-left: 0; max-width: 100%; }
+        }
+        .badge {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: 600;
+        }
+        .badge-info { background: #e6f7ff; color: #1a5f7a; }
+        .badge-success { background: #f6ffed; color: #52c41a; }
+        .formula-note {
+            font-size: 12px;
+            color: #999;
+            margin-top: 8px;
+            padding: 8px;
+            background: #fafafa;
+            border-radius: 4px;
+            border-left: 3px solid #57c5b6;
+        }
+        .editable-cell {
+            background: #fffbe6;
+            border: 1px solid #ffe58f;
+            padding: 4px 6px;
+            border-radius: 3px;
+            width: 80px;
+            text-align: right;
+            font-family: "Consolas", monospace;
+            font-size: 12px;
+        }
+        .editable-cell:focus {
+            outline: none;
+            border-color: #1a5f7a;
+            background: #fff;
+        }
+        .indicator-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+        .indicator-card {
+            background: #fff;
+            border-radius: 8px;
+            padding: 16px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            border-top: 3px solid #57c5b6;
+        }
+        .indicator-card .title { font-size: 14px; color: #666; margin-bottom: 8px; }
+        .indicator-card .value { font-size: 24px; font-weight: 600; color: #1a5f7a; font-family: "Consolas", monospace; }
+        .indicator-card .desc { font-size: 12px; color: #999; margin-top: 4px; }
+        .chart-bar {
+            height: 8px;
+            background: #e0e0e0;
+            border-radius: 4px;
+            overflow: hidden;
+            margin-top: 8px;
+        }
+        .chart-bar-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #1a5f7a, #57c5b6);
+            border-radius: 4px;
+            transition: width 0.5s;
+        }
+        .scroll-hint {
+            font-size: 12px;
+            color: #999;
+            margin-bottom: 8px;
+            text-align: right;
+        }
+        .scroll-hint::before { content: "← 左右滑动查看更多年份"; }
+    </style>
+</head>
+<body>
+    <div class="top-nav">
+        <h1>📋 可研报告编写工具</h1>
+        <div class="nav-actions">
+            <button class="btn btn-primary" onclick="saveData()">💾 保存数据</button>
+            <button class="btn btn-secondary" onclick="loadData()">📂 加载数据</button>
+            <button class="btn btn-success" onclick="exportAll()">📊 导出Excel</button>
+        </div>
+    </div>
+    <div class="container">
+        <div class="sidebar">
+            <div class="menu-group">
+                <div class="menu-title">功能模块</div>
+                <a href="index.html">🏠 首页与参数设置</a>
+                <a href="outline.html">📑 可研报告大纲</a>
+                <a href="investment.html">💰 投资估算</a>
+                <a href="cost.html">📉 成本费用</a>
+                <a href="profit-cashflow.html" class="active">💹 利润与现金流量</a>
+                <a href="balance.html">📊 资产负债与偿债</a>
+                <a href="indicators.html">📈 评价指标</a>
+            </div>
+            <div class="menu-group">
+                <div class="menu-title">快捷操作</div>
+                <a href="#" onclick="recalculateAll(); return false;">🔄 重新计算</a>
+                <a href="#" onclick="resetAll(); return false;">🗑️ 重置数据</a>
+            </div>
+        </div>
+        <div class="main-content">
+            <div class="page-header">
+                <div>
+                    <h2>利润与现金流量</h2>
+                    <div class="info-row">
+                        <div class="info-item">项目: <strong id="projectName">未命名项目</strong></div>
+                        <div class="info-item">建设期: <strong id="constructionPeriod">-</strong> 年</div>
+                        <div class="info-item">运营期: <strong id="operationPeriod">-</strong> 年</div>
+                        <div class="info-item">计算期: <strong id="calculationPeriod">-</strong> 年</div>
+                        <div class="info-item">基准收益率: <strong id="benchmarkRate">-</strong></div>
+                    </div>
+                </div>
+                <div class="btn-group">
+                    <button class="btn btn-primary" onclick="exportTable('profit')">导出利润表</button>
+                    <button class="btn btn-primary" onclick="exportTable('cashflow')">导出现金流量表</button>
+                    <button class="btn btn-primary" onclick="exportTable('capital')">导出资本金表</button>
+                    <button class="btn btn-primary" onclick="exportTable('financial')">导出财务计划表</button>
+                </div>
+            </div>
+
+            <div class="summary-cards" id="summaryCards"></div>
+
+            <div class="card">
+                <div class="card-header">
+                    <span>报表视图</span>
+                    <span class="badge badge-info">《方法与参数》第三版</span>
+                </div>
+                <div class="card-body">
+                    <div class="tab-bar">
+                        <button class="tab-btn active" onclick="switchTab('profit')">利润与利润分配表 (B12)</button>
+                        <button class="tab-btn" onclick="switchTab('cashflow')">项目投资现金流量表 (B9)</button>
+                        <button class="tab-btn" onclick="switchTab('capital')">项目资本金现金流量表 (B10)</button>
+                        <button class="tab-btn" onclick="switchTab('financial')">财务计划现金流量表 (B13)</button>
+                    </div>
+
+                    <div id="profit" class="tab-panel active">
+                        <div class="section-title">利润与利润分配表（单位：万元）</div>
+                        <div class="scroll-hint"></div>
+                        <div style="overflow-x:auto;">
+                            <table id="profitTable">
+                                <thead></thead>
+                                <tbody></tbody>
+                            </table>
+                        </div>
+                        <div class="formula-note">
+                            <strong>计算公式说明：</strong><br>
+                            利润总额 = 营业收入 + 补贴收入 - 税金及附加 - 总成本费用<br>
+                            应纳税所得额 = 利润总额 - 弥补以前年度亏损<br>
+                            所得税 = 应纳税所得额 × 所得税率（当应纳税所得额＞0时）<br>
+                            净利润 = 利润总额 - 所得税<br>
+                            可供分配利润 = 净利润 + 期初未分配利润<br>
+                            法定盈余公积金 = 净利润 × 10%（当净利润＞0时）
+                        </div>
+                    </div>
+
+                    <div id="cashflow" class="tab-panel">
+                        <div class="section-title">项目投资现金流量表（单位：万元）</div>
+                        <div class="scroll-hint"></div>
+                        <div style="overflow-x:auto;">
+                            <table id="cashflowTable">
+                                <thead></thead>
+                                <tbody></tbody>
+                            </table>
+                        </div>
+                        <div class="formula-note">
+                            <strong>计算公式说明：</strong><br>
+                            所得税前净现金流量 = 现金流入 - 现金流出（不含调整所得税）<br>
+                            调整所得税 = 息税前利润(EBIT) × 所得税率<br>
+                            息税前利润 = 营业收入 - 税金及附加 - 经营成本 - 折旧 - 摊销<br>
+                            所得税后净现金流量 = 所得税前净现金流量 - 调整所得税<br>
+                            累计净现金流量 = 各年净现金流量累加
+                        </div>
+                    </div>
+
+                    <div id="capital" class="tab-panel">
+                        <div class="section-title">项目资本金现金流量表（单位：万元）</div>
+                        <div class="scroll-hint"></div>
+                        <div style="overflow-x:auto;">
+                            <table id="capitalTable">
+                                <thead></thead>
+                                <tbody></tbody>
+                            </table>
+                        </div>
+                        <div class="formula-note">
+                            <strong>计算公式说明：</strong><br>
+                            净现金流量 = 现金流入 - 现金流出<br>
+                            现金流出含：项目资本金投入、借款本金偿还、借款利息支付、经营成本、税金及附加、所得税<br>
+                            本表从投资者角度考察项目资本金的盈利能力。
+                        </div>
+                    </div>
+
+                    <div id="financial" class="tab-panel">
+                        <div class="section-title">财务计划现金流量表（单位：万元）</div>
+                        <div class="scroll-hint"></div>
+                        <div style="overflow-x:auto;">
+                            <table id="financialTable">
+                                <thead></thead>
+                                <tbody></tbody>
+                            </table>
+                        </div>
+                        <div class="formula-note">
+                            <strong>计算公式说明：</strong><br>
+                            经营活动净现金流量 = 营业收入 - 经营成本 - 税金及附加 - 所得税<br>
+                            投资活动净现金流量 = -建设投资 - 流动资金 - 维持运营投资 + 回收资产余值<br>
+                            筹资活动净现金流量 = 资本金 + 借款取得 - 借款本金偿还 - 借款利息支付 - 股利分配<br>
+                            净现金流量 = 经营活动 + 投资活动 + 筹资活动净现金流量<br>
+                            累计盈余资金 = 各年净现金流量累加（反映资金充裕程度）
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header">
+                    <span>关键评价指标</span>
+                </div>
+                <div class="card-body">
+                    <div class="indicator-grid" id="indicatorGrid"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="toast" id="toast"></div>
+
+    <script>
+    // ===================== 数据模型 =====================
+    const STORAGE_KEY = 'feasibility_study_data';
+
+    const defaultProjectData = {
+        basic: {
+            projectName: '示例项目',
+            projectType: '政府投资',
+            constructionPeriod: 2,
+            operationPeriod: 20,
+            benchmarkRate: 0.08,
+        },
+        investment: {
+            engineeringCost: 50000,
+            otherCost: 5000,
+            basicReserve: 2750,
+            priceReserve: 2000,
+            constructionInterest: 1500,
+            workingCapital: 3000,
+        },
+        financing: {
+            capitalRatio: 0.20,
+            loanAmount: 40000,
+            loanRate: 0.05,
+            loanTerm: 10,
+            repaymentMethod: 'equal_payment',
+        },
+        revenue: {
+            annualRevenue: 30000,
+            loadRates: [],
+            subsidyIncome: 0,
+            vatRate: 0.13,
+            surchargeRate: 0.12,
+            incomeTaxRate: 0.25,
+        },
+        cost: {
+            rawMaterial: 8000,
+            fuel: 2000,
+            salary: 3000,
+            repair: 1500,
+            other: 1000,
+            depreciationMethod: 'straight',
+            depreciationYears: 20,
+            residualRate: 0.05,
+            amortization: 500,
+        }
+    };
+
+    let ProjectData = JSON.parse(JSON.stringify(defaultProjectData));
+
+    // ===================== 核心计算函数 =====================
+    const Calculator = {
+        // 计算折旧费（直线法）
+        calculateDepreciation: (originalValue, residualRate, years) => {
+            if (years <= 0) return 0;
+            return originalValue * (1 - residualRate) / years;
+        },
+
+        // 计算建设期利息（简化：各年均衡投入）
+        calculateConstructionInterest: (totalLoan, constructionPeriod, rate) => {
+            const annualLoan = totalLoan / constructionPeriod;
+            let totalInterest = 0;
+            let accumulated = 0;
+            const interests = [];
+            for (let i = 0; i < constructionPeriod; i++) {
+                const yearInterest = (accumulated + annualLoan / 2) * rate;
+                interests.push(yearInterest);
+                totalInterest += yearInterest;
+                accumulated += annualLoan + yearInterest;
+            }
+            return { interests, totalInterest, accumulated };
+        },
+
+        // 等额还本付息（年金法）
+        calculateEqualPayment: (principal, rate, years) => {
+            if (rate === 0) return { annualPayment: principal / years, schedule: [] };
+            const annualPayment = principal * (rate * Math.pow(1 + rate, years)) / (Math.pow(1 + rate, years) - 1);
+            const schedule = [];
+            let balance = principal;
+            for (let i = 0; i < years; i++) {
+                const interest = balance * rate;
+                const principalRepaid = annualPayment - interest;
+                balance -= principalRepaid;
+                schedule.push({
+                    year: i + 1,
+                    payment: annualPayment,
+                    interest: interest,
+                    principal: principalRepaid,
+                    balance: Math.max(0, balance)
+                });
+            }
+            return { annualPayment, schedule };
+        },
+
+        // 等额本金还款
+        calculateEqualPrincipal: (principal, rate, years) => {
+            const annualPrincipal = principal / years;
+            const schedule = [];
+            let balance = principal;
+            for (let i = 0; i < years; i++) {
+                const interest = balance * rate;
+                const payment = annualPrincipal + interest;
+                balance -= annualPrincipal;
+                schedule.push({
+                    year: i + 1,
+                    payment: payment,
+                    interest: interest,
+                    principal: annualPrincipal,
+                    balance: Math.max(0, balance)
+                });
+            }
+            return { annualPayment: null, schedule };
+        },
+
+        // 计算NPV
+        calculateNPV: (cashFlows, discountRate) => {
+            let npv = 0;
+            for (let t = 0; t < cashFlows.length; t++) {
+                npv += cashFlows[t] / Math.pow(1 + discountRate, t);
+            }
+            return npv;
+        },
+
+        // 计算IRR（牛顿迭代法）
+        calculateIRR: (cashFlows, guess = 0.1) => {
+            const maxIter = 100;
+            const tolerance = 1e-7;
+            let rate = guess;
+            for (let i = 0; i < maxIter; i++) {
+                let npv = 0, dNpv = 0;
+                for (let t = 0; t < cashFlows.length; t++) {
+                    npv += cashFlows[t] / Math.pow(1 + rate, t);
+                    dNpv -= t * cashFlows[t] / Math.pow(1 + rate, t + 1);
+                }
+                if (Math.abs(npv) < tolerance) return rate;
+                if (Math.abs(dNpv) < 1e-12) break;
+                rate -= npv / dNpv;
+                if (rate < -0.99) rate = -0.99;
+                if (rate > 10) rate = 10;
+            }
+            return null;
+        },
+
+        // 计算投资回收期
+        calculatePaybackPeriod: (cashFlows) => {
+            let cumulative = 0;
+            for (let t = 0; t < cashFlows.length; t++) {
+                const prevCumulative = cumulative;
+                cumulative += cashFlows[t];
+                if (prevCumulative < 0 && cumulative >= 0) {
+                    return t + Math.abs(prevCumulative) / cashFlows[t];
+                }
+            }
+            return cumulative >= 0 ? cashFlows.length - 1 : null;
+        }
+    };
+
+    // ===================== 辅助函数 =====================
+    function formatNumber(num, digits = 2) {
+        if (num === null || num === undefined || isNaN(num)) return '-';
+        return num.toLocaleString('zh-CN', { minimumFractionDigits: digits, maximumFractionDigits: digits });
+    }
+
+    function formatPercent(num, digits = 2) {
+        if (num === null || num === undefined || isNaN(num)) return '-';
+        return (num * 100).toFixed(digits) + '%';
+    }
+
+    function showToast(msg) {
+        const toast = document.getElementById('toast');
+        toast.textContent = msg;
+        toast.classList.add('show');
+        setTimeout(() => toast.classList.remove('show'), 2500);
+    }
+
+    function switchTab(id) {
+        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+        document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+        event.target.classList.add('active');
+        document.getElementById(id).classList.add('active');
+    }
+
+    // ===================== 数据加载与保存 =====================
+    function loadData() {
+        const stored = localStorage.getItem(STORAGE_KEY);
+        if (stored) {
+            try {
+                const parsed = JSON.parse(stored);
+                ProjectData = Object.assign(JSON.parse(JSON.stringify(defaultProjectData)), parsed);
+            } catch (e) {
+                console.error('加载数据失败:', e);
+            }
+        }
+        // 生成默认负荷率
+        const totalYears = ProjectData.basic.constructionPeriod + ProjectData.basic.operationPeriod;
+        if (!ProjectData.revenue.loadRates || ProjectData.revenue.loadRates.length === 0) {
+            ProjectData.revenue.loadRates = generateDefaultLoadRates(
+                ProjectData.basic.constructionPeriod,
+                ProjectData.basic.operationPeriod
+            );
+        }
+        updateHeaderInfo();
+        renderAll();
+    }
+
+    function saveData() {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(ProjectData));
+        showToast('数据已保存到本地存储');
+    }
+
+    function resetAll() {
+        if (confirm('确定要重置所有数据吗？')) {
+            ProjectData = JSON.parse(JSON.stringify(defaultProjectData));
+            localStorage.removeItem(STORAGE_KEY);
+            loadData();
+            showToast('数据已重置');
+        }
+    }
+
+    function generateDefaultLoadRates(construction, operation) {
+        const rates = [];
+        for (let i = 0; i < construction; i++) rates.push(0);
+        // 投产期逐年达产
+        if (operation >= 1) rates.push(0.60);
+        if (operation >= 2) rates.push(0.80);
+        for (let i = 2; i < operation; i++) rates.push(1.0);
+        return rates;
+    }
+
+    function updateHeaderInfo() {
+        document.getElementById('projectName').textContent = ProjectData.basic.projectName || '未命名项目';
+        document.getElementById('constructionPeriod').textContent = ProjectData.basic.constructionPeriod;
+        document.getElementById('operationPeriod').textContent = ProjectData.basic.operationPeriod;
+        document.getElementById('calculationPeriod').textContent = ProjectData.basic.constructionPeriod + ProjectData.basic.operationPeriod;
+        document.getElementById('benchmarkRate').textContent = (ProjectData.basic.benchmarkRate * 100).toFixed(1) + '%';
+    }
+
+    // ===================== 核心计算引擎 =====================
+    function computeAllTables() {
+        const d = ProjectData;
+        const cp = d.basic.constructionPeriod;
+        const op = d.basic.operationPeriod;
+        const totalYears = cp + op;
+        const years = [];
+        for (let i = 0; i < totalYears; i++) years.push(i);
+
+        // 总投资
+        const totalInvestment = d.investment.engineeringCost + d.investment.otherCost
+            + d.investment.basicReserve + d.investment.priceReserve
+            + d.investment.constructionInterest + d.investment.workingCapital;
+
+        // 固定资产原值 = 工程费用 + 其他费用 + 预备费 + 建设期利息
+        const fixedAssetValue = d.investment.engineeringCost + d.investment.otherCost
+            + d.investment.basicReserve + d.investment.priceReserve + d.investment.constructionInterest;
+
+        // 年折旧额
+        const annualDepreciation = Calculator.calculateDepreciation(
+            fixedAssetValue, d.cost.residualRate, d.cost.depreciationYears
+        );
+
+        // 固定资产残值
+        const residualValue = fixedAssetValue * d.cost.residualRate;
+
+        // 总成本费用（正常年）
+        const normalTotalCost = d.cost.rawMaterial + d.cost.fuel + d.cost.salary
+            + d.cost.repair + d.cost.other + annualDepreciation + d.cost.amortization;
+
+        // 经营成本（正常年）= 总成本 - 折旧 - 摊销 - 利息
+        const normalOperatingCost = d.cost.rawMaterial + d.cost.fuel + d.cost.salary
+            + d.cost.repair + d.cost.other;
+
+        // 借款与还款计划
+        const loanPrincipal = d.financing.loanAmount;
+        const loanRate = d.financing.loanRate;
+        const loanTerm = d.financing.loanTerm;
+        const repaymentMethod = d.financing.repaymentMethod;
+
+        let repaymentSchedule = [];
+        if (repaymentMethod === 'equal_payment') {
+            repaymentSchedule = Calculator.calculateEqualPayment(loanPrincipal, loanRate, loanTerm).schedule;
+        } else {
+            repaymentSchedule = Calculator.calculateEqualPrincipal(loanPrincipal, loanRate, loanTerm).schedule;
+        }
+
+        // 各年度数据计算
+        const results = {
+            years,
+            totalYears,
+            cp,
+            op,
+            revenue: [],
+            vat: [],
+            surcharge: [],
+            operatingCost: [],
+            depreciation: [],
+            amortization: [],
+            interest: [],
+            totalCost: [],
+            profit: [],
+            taxableIncome: [],
+            incomeTax: [],
+            netProfit: [],
+            surplusReserve: [],
+            distributableProfit: [],
+            undistributedProfit: [],
+            // 现金流量
+            cashIn: [],
+            cashOut: [],
+            netCashflow: [],
+            cumulativeNetCashflow: [],
+            // 资本金
+            capitalCashIn: [],
+            capitalCashOut: [],
+            capitalNetCashflow: [],
+            // 财务计划
+            operatingCashflow: [],
+            investingCashflow: [],
+            financingCashflow: [],
+            financialNetCashflow: [],
+            cumulativeSurplus: [],
+            // EBIT
+            ebit: [],
+            // 调整所得税
+            adjustedTax: [],
+        };
+
+        let cumulativeNetProfit = 0;
+        let cumulativeLoss = 0;
+        let prevUndistributed = 0;
+        let cumulativeNetCash = 0;
+        let cumulativeSurplus = 0;
+
+        for (let t = 0; t < totalYears; t++) {
+            const isConstruction = t < cp;
+            const loadRate = isConstruction ? 0 : d.revenue.loadRates[t - cp] || 0;
+            const revenue = d.revenue.annualRevenue * loadRate;
+            const operatingCost = normalOperatingCost * loadRate;
+            const vat = revenue * d.revenue.vatRate;
+            const surcharge = vat * d.revenue.surchargeRate;
+
+            // 折旧与摊销（运营期开始计提）
+            const depreciation = isConstruction ? 0 : annualDepreciation;
+            const amortization = isConstruction ? 0 : d.cost.amortization;
+
+            // 利息（建设期计入投资，运营期计入财务费用）
+            let interest = 0;
+            if (!isConstruction) {
+                const repaymentYear = t - cp;
+                if (repaymentYear < repaymentSchedule.length) {
+                    interest = repaymentSchedule[repaymentYear].interest;
+                }
+            }
+
+            // 总成本费用
+            const totalCost = operatingCost + depreciation + amortization + interest;
+
+            // 利润总额
+            const profit = revenue + d.revenue.subsidyIncome - surcharge - totalCost;
+
+            // 弥补亏损与所得税
+            let taxableIncome = profit;
+            let incomeTax = 0;
+            if (profit < 0) {
+                cumulativeLoss += Math.abs(profit);
+                taxableIncome = 0;
+            } else {
+                if (cumulativeLoss > 0) {
+                    const offset = Math.min(cumulativeLoss, profit);
+                    taxableIncome = profit - offset;
+                    cumulativeLoss -= offset;
+                }
+                if (taxableIncome > 0) {
+                    incomeTax = taxableIncome * d.revenue.incomeTaxRate;
+                }
+            }
+
+            const netProfit = profit - incomeTax;
+            const surplusReserve = netProfit > 0 ? netProfit * 0.10 : 0;
+            const distributableProfit = netProfit + prevUndistributed - surplusReserve;
+            const undistributedProfit = distributableProfit > 0 ? distributableProfit * 0.3 : 0; // 假设30%分配
+
+            results.revenue.push(revenue);
+            results.vat.push(vat);
+            results.surcharge.push(surcharge);
+            results.operatingCost.push(operatingCost);
+            results.depreciation.push(depreciation);
+            results.amortization.push(amortization);
+            results.interest.push(interest);
+            results.totalCost.push(totalCost);
+            results.profit.push(profit);
+            results.taxableIncome.push(taxableIncome);
+            results.incomeTax.push(incomeTax);
+            results.netProfit.push(netProfit);
+            results.surplusReserve.push(surplusReserve);
+            results.distributableProfit.push(distributableProfit);
+            results.undistributedProfit.push(undistributedProfit);
+
+            // EBIT = 利润总额 + 利息
+            const ebit = profit + interest;
+            results.ebit.push(ebit);
+            results.adjustedTax.push(ebit > 0 ? ebit * d.revenue.incomeTaxRate : 0);
+
+            prevUndistributed = undistributedProfit;
+
+            // 项目投资现金流量表
+            let cashIn = 0, cashOut = 0;
+            if (isConstruction) {
+                // 建设期：投入建设投资
+                const constructionInvestment = totalInvestment / cp;
+                cashOut = constructionInvestment;
+            } else {
+                cashIn = revenue + d.revenue.subsidyIncome;
+                // 最后一年回收固定资产余值和流动资金
+                if (t === totalYears - 1) {
+                    cashIn += residualValue + d.investment.workingCapital;
+                }
+                cashOut = operatingCost + surcharge;
+                if (t === cp) cashOut += d.investment.workingCapital; // 投产年投入流动资金
+            }
+            results.cashIn.push(cashIn);
+            results.cashOut.push(cashOut);
+            const netCash = cashIn - cashOut;
+            results.netCashflow.push(netCash);
+            cumulativeNetCash += netCash;
+            results.cumulativeNetCashflow.push(cumulativeNetCash);
+
+            // 项目资本金现金流量表
+            let capitalIn = cashIn;
+            let capitalOut = cashOut;
+            if (isConstruction) {
+                // 资本金投入 = 总投资 × 资本金比例 / 建设期
+                capitalOut = (totalInvestment * d.financing.capitalRatio) / cp;
+            } else {
+                const repaymentYear = t - cp;
+                if (repaymentYear < repaymentSchedule.length) {
+                    capitalOut += repaymentSchedule[repaymentYear].principal + repaymentSchedule[repaymentYear].interest;
+                }
+                capitalOut += incomeTax;
+            }
+            results.capitalCashIn.push(capitalIn);
+            results.capitalCashOut.push(capitalOut);
+            results.capitalNetCashflow.push(capitalIn - capitalOut);
+
+            // 财务计划现金流量表
+            let operatingCF = 0, investingCF = 0, financingCF = 0;
+            if (isConstruction) {
+                operatingCF = 0;
+                investingCF = -(totalInvestment / cp);
+                financingCF = (totalInvestment / cp) * d.financing.capitalRatio
+                    + (totalInvestment / cp) * (1 - d.financing.capitalRatio); // 借款
+            } else {
+                operatingCF = revenue - operatingCost - surcharge - incomeTax;
+                investingCF = 0;
+                if (t === cp) {
+                    investingCF -= d.investment.workingCapital;
+                }
+                if (t === totalYears - 1) {
+                    investingCF += residualValue + d.investment.workingCapital;
+                }
+                financingCF = 0;
+                const repaymentYear = t - cp;
+                if (repaymentYear < repaymentSchedule.length) {
+                    financingCF -= repaymentSchedule[repaymentYear].principal + repaymentSchedule[repaymentYear].interest;
+                }
+                if (repaymentYear === 0) {
+                    financingCF += loanPrincipal; // 借款到账
+                }
+                // 股利分配
+                if (netProfit > 0) {
+                    financingCF -= (netProfit - surplusReserve - undistributedProfit);
+                }
+            }
+            results.operatingCashflow.push(operatingCF);
+            results.investingCashflow.push(investingCF);
+            results.financingCashflow.push(financingCF);
+            const financialNet = operatingCF + investingCF + financingCF;
+            results.financialNetCashflow.push(financialNet);
+            cumulativeSurplus += financialNet;
+            results.cumulativeSurplus.push(cumulativeSurplus);
+        }
+
+        return results;
+    }
+
+    // ===================== 渲染函数 =====================
+    function renderAll() {
+        const data = computeAllTables();
+        renderProfitTable(data);
+        renderCashflowTable(data);
+        renderCapitalTable(data);
+        renderFinancialTable(data);
+        renderSummary(data);
+        renderIndicators(data);
+    }
+
+    function renderProfitTable(data) {
+        const thead = document.querySelector('#profitTable thead');
+        const tbody = document.querySelector('#profitTable tbody');
+        let headHtml = '<tr><th class="sticky-col">项目</th>';
+        for (let i = 0; i < data.totalYears; i++) {
+            const label = i < data.cp ? `建设期${i + 1}年` : `运营期${i - data.cp + 1}年`;
+            headHtml += `<th>${label}</th>`;
+        }
+        headHtml += '</tr>';
+        thead.innerHTML = headHtml;
+
+        const rows = [
+            { name: '一、营业收入', key: 'revenue', cls: 'total-row' },
+            { name: '  补贴收入', key: 'subsidy', val: () => data.revenue.map((_, i) => i < data.cp ? 0 : ProjectData.revenue.subsidyIncome) },
+            { name: '二、增值税', key: 'vat', cls: '' },
+            { name: '三、税金及附加', key: 'surcharge', cls: '' },
+            { name: '四、总成本费用', key: 'totalCost', cls: 'total-row' },
+            { name: '  其中:经营成本', key: 'operatingCost', cls: '' },
+            { name: '       折旧费', key: 'depreciation', cls: '' },
+            { name: '       摊销费', key: 'amortization', cls: '' },
+            { name: '       利息支出', key: 'interest', cls: '' },
+            { name: '五、利润总额(1-2+补贴-4)', key: 'profit', cls: 'highlight' },
+            { name: '  减:弥补以前年度亏损', key: 'loss', val: () => data.profit.map((v, i) => {
+                let cum = 0;
+                for (let j = 0; j < i; j++) if (data.profit[j] < 0) cum += Math.abs(data.profit[j]);
+                return v > 0 ? Math.min(cum, v) : 0;
+            }) },
+            { name: '六、应纳税所得额', key: 'taxableIncome', cls: '' },
+            { name: '  减:所得税', key: 'incomeTax', cls: '' },
+            { name: '七、净利润(5-8)', key: 'netProfit', cls: 'highlight' },
+            { name: '八、期初未分配利润', key: 'prevUndistributed', val: () => {
+                const arr = [0];
+                for (let i = 1; i < data.totalYears; i++) {
+                    arr.push(data.undistributedProfit[i - 1]);
+                }
+                return arr;
+            } },
+            { name: '九、可供分配利润', key: 'distributableProfit', cls: 'subtotal-row' },
+            { name: '  减:法定盈余公积金', key: 'surplusReserve', cls: '' },
+            { name: '十、未分配利润', key: 'undistributedProfit', cls: '' },
+        ];
+
+        let bodyHtml = '';
+        rows.forEach(row => {
+            const values = row.val ? row.val() : data[row.key] || data.profit.map(() => 0);
+            const cls = row.cls || '';
+            bodyHtml += `<tr class="${cls}"><td class="sticky-col">${row.name}</td>`;
+            values.forEach(v => {
+                const numCls = v < 0 ? 'num neg' : 'num';
+                bodyHtml += `<td class="${numCls}">${formatNumber(v)}</td>`;
+            });
+            bodyHtml += '</tr>';
+        });
+        tbody.innerHTML = bodyHtml;
+    }
+
+    function renderCashflowTable(data) {
+        const thead = document.querySelector('#cashflowTable thead');
+        const tbody = document.querySelector('#cashflowTable tbody');
+        let headHtml = '<tr><th class="sticky-col">项目</th>';
+        for (let i = 0; i < data.totalYears; i++) {
+            const label = i < data.cp ? `建设期${i + 1}年` : `运营期${i - data.cp + 1}年`;
+            headHtml += `<th>${label}</th>`;
+        }
+        headHtml += '</tr>';
+        thead.innerHTML = headHtml;
+
+        const residualValue = (ProjectData.investment.engineeringCost + ProjectData.investment.otherCost
+            + ProjectData.investment.basicReserve + ProjectData.investment.priceReserve + ProjectData.investment.constructionInterest)
+            * ProjectData.cost.residualRate;
+
+        const rows = [
+            { name: '一、现金流入', key: 'cashIn', cls: 'total-row' },
+            { name: '  营业收入', key: 'revenue', cls: '' },
+            { name: '  补贴收入', key: 'subsidy', val: () => data.revenue.map((_, i) => i < data.cp ? 0 : ProjectData.revenue.subsidyIncome) },
+            { name: '  回收固定资产余值', key: 'residual', val: () => data.revenue.map((_, i) => i === data.totalYears - 1 ? residualValue : 0) },
+            { name: '  回收流动资金', key: 'wc', val: () => data.revenue.map((_, i) => i === data.totalYears - 1 ? ProjectData.investment.workingCapital : 0) },
+            { name: '二、现金流出', key: 'cashOut', cls: 'total-row' },
+            { name: '  建设投资', key: 'investment', val: () => data.revenue.map((_, i) => i < data.cp ? (ProjectData.investment.engineeringCost + ProjectData.investment.otherCost + ProjectData.investment.basicReserve + ProjectData.investment.priceReserve + ProjectData.investment.constructionInterest) / data.cp : 0) },
+            { name: '  流动资金', key: 'workingCap', val: () => data.revenue.map((_, i) => i === data.cp ? ProjectData.investment.workingCapital : 0) },
+            { name: '  经营成本', key: 'operatingCost', cls: '' },
+            { name: '  税金及附加', key: 'surcharge', cls: '' },
+            { name: '三、所得税前净现金流量(1-2)', key: 'netCashflow', cls: 'highlight' },
+            { name: '四、累计所得税前净现金流量', key: 'cumulativeNetCashflow', cls: 'subtotal-row' },
+            { name: '五、调整所得税', key: 'adjustedTax', cls: '' },
+            { name: '六、所得税后净现金流量(3-5)', key: 'afterTax', val: () => data.netCashflow.map((v, i) => v - data.adjustedTax[i]) },
+            { name: '七、累计所得税后净现金流量', key: 'cumAfterTax', val: () => {
+                let cum = 0;
+                return data.netCashflow.map((v, i) => { cum += v - data.adjustedTax[i]; return cum; });
+            } },
+        ];
+
+        let bodyHtml = '';
+        rows.forEach(row => {
+            const values = row.val ? row.val() : data[row.key] || data.revenue.map(() => 0);
+            const cls = row.cls || '';
+            bodyHtml += `<tr class="${cls}"><td class="sticky-col">${row.name}</td>`;
+            values.forEach(v => {
+                const numCls = v < 0 ? 'num neg' : 'num';
+                bodyHtml += `<td class="${numCls}">${formatNumber(v)}</td>`;
+            });
+            bodyHtml += '</tr>';
+        });
+        tbody.innerHTML = bodyHtml;
+    }
+
+    function renderCapitalTable(data) {
+        const thead = document.querySelector('#capitalTable thead');
+        const tbody = document.querySelector('#capitalTable tbody');
+        let headHtml = '<tr><th class="sticky-col">项目</th>';
+        for (let i = 0; i < data.totalYears; i++) {
+            const label = i < data.cp ? `建设期${i + 1}年` : `运营期${i - data.cp + 1}年`;
+            headHtml += `<th>${label}</th>`;
+        }
+        headHtml += '</tr>';
+        thead.innerHTML = headHtml;
+
+        const residualValue = (ProjectData.investment.engineeringCost + ProjectData.investment.otherCost
+            + ProjectData.investment.basicReserve + ProjectData.investment.priceReserve + ProjectData.investment.constructionInterest)
+            * ProjectData.cost.residualRate;
+
+        // 计算资本金投入和还款
+        const totalInvestment = ProjectData.investment.engineeringCost + ProjectData.investment.otherCost
+            + ProjectData.investment.basicReserve + ProjectData.investment.priceReserve
+            + ProjectData.investment.constructionInterest + ProjectData.investment.workingCapital;
+        const capitalRatio = ProjectData.financing.capitalRatio;
+        const loanPrincipal = ProjectData.financing.loanAmount;
+        const loanRate = ProjectData.financing.loanRate;
+        const loanTerm = ProjectData.financing.loanTerm;
+
+        let repaymentSchedule = [];
+        if (ProjectData.financing.repaymentMethod === 'equal_payment') {
+            repaymentSchedule = Calculator.calculateEqualPayment(loanPrincipal, loanRate, loanTerm).schedule;
+        } else {
+            repaymentSchedule = Calculator.calculateEqualPrincipal(loanPrincipal, loanRate, loanTerm).schedule;
+        }
+
+        const rows = [
+            { name: '一、现金流入', key: 'capitalCashIn', cls: 'total-row' },
+            { name: '  营业收入', key: 'revenue', cls: '' },
+            { name: '  补贴收入', key: 'subsidy', val: () => data.revenue.map((_, i) => i < data.cp ? 0 : ProjectData.revenue.subsidyIncome) },
+            { name: '  回收固定资产余值', key: 'residual', val: () => data.revenue.map((_, i) => i === data.totalYears - 1 ? residualValue : 0) },
+            { name: '  回收流动资金', key: 'wc', val: () => data.revenue.map((_, i) => i === data.totalYears - 1 ? ProjectData.investment.workingCapital : 0) },
+            { name: '二、现金流出', key: 'capitalCashOut', cls: 'total-row' },
+            { name: '  项目资本金', key: 'capital', val: () => data.revenue.map((_, i) => i < data.cp ? totalInvestment * capitalRatio / data.cp : 0) },
+            { name: '  借款本金偿还', key: 'principal', val: () => data.revenue.map((_, i) => {
+                if (i < data.cp) return 0;
+                const ry = i - data.cp;
+                return ry < repaymentSchedule.length ? repaymentSchedule[ry].principal : 0;
+            }) },
+            { name: '  借款利息支付', key: 'interest', val: () => data.revenue.map((_, i) => {
+                if (i < data.cp) return 0;
+                const ry = i - data.cp;
+                return ry < repaymentSchedule.length ? repaymentSchedule[ry].interest : 0;
+            }) },
+            { name: '  经营成本', key: 'operatingCost', cls: '' },
+            { name: '  税金及附加', key: 'surcharge', cls: '' },
+            { name: '  所得税', key: 'incomeTax', cls: '' },
+            { name: '三、净现金流量(1-2)', key: 'capitalNetCashflow', cls: 'highlight' },
+        ];
+
+        let bodyHtml = '';
+        rows.forEach(row => {
+            const values = row.val ? row.val() : data[row.key] || data.revenue.map(() => 0);
+            const cls = row.cls || '';
+            bodyHtml += `<tr class="${cls}"><td class="sticky-col">${row.name}</td>`;
+            values.forEach(v => {
+                const numCls = v < 0 ? 'num neg' : 'num';
+                bodyHtml += `<td class="${numCls}">${formatNumber(v)}</td>`;
+            });
+            bodyHtml += '</tr>';
+        });
+        tbody.innerHTML = bodyHtml;
+    }
+
+    function renderFinancialTable(data) {
+        const thead = document.querySelector('#financialTable thead');
+        const tbody = document.querySelector('#financialTable tbody');
+        let headHtml = '<tr><th class="sticky-col">项目</th>';
+        for (let i = 0; i < data.totalYears; i++) {
+            const label = i < data.cp ? `建设期${i + 1}年` : `运营期${i - data.cp + 1}年`;
+            headHtml += `<th>${label}</th>`;
+        }
+        headHtml += '</tr>';
+        thead.innerHTML = headHtml;
+
+        const totalInvestment = ProjectData.investment.engineeringCost + ProjectData.investment.otherCost
+            + ProjectData.investment.basicReserve + ProjectData.investment.priceReserve
+            + ProjectData.investment.constructionInterest + ProjectData.investment.workingCapital;
+        const capitalRatio = ProjectData.financing.capitalRatio;
+        const loanPrincipal = ProjectData.financing.loanAmount;
+        const loanRate = ProjectData.financing.loanRate;
+        const loanTerm = ProjectData.financing.loanTerm;
+
+        let repaymentSchedule = [];
+        if (ProjectData.financing.repaymentMethod === 'equal_payment') {
+            repaymentSchedule = Calculator.calculateEqualPayment(loanPrincipal, loanRate, loanTerm).schedule;
+        } else {
+            repaymentSchedule = Calculator.calculateEqualPrincipal(loanPrincipal, loanRate, loanTerm).schedule;
+        }
+
+        const residualValue = (ProjectData.investment.engineeringCost + ProjectData.investment.otherCost
+            + ProjectData.investment.basicReserve + ProjectData.investment.priceReserve + ProjectData.investment.constructionInterest)
+            * ProjectData.cost.residualRate;
+
+        const rows = [
+            { name: '一、经营活动净现金流量', key: 'operatingCashflow', cls: 'total-row' },
+            { name: '  现金流入', key: 'opIn', val: () => data.revenue.map((v, i) => i < data.cp ? 0 : v + ProjectData.revenue.subsidyIncome) },
+            { name: '  现金流出', key: 'opOut', val: () => data.revenue.map((v, i) => i < data.cp ? 0 : data.operatingCost[i] + data.surcharge[i] + data.incomeTax[i]) },
+            { name: '二、投资活动净现金流量', key: 'investingCashflow', cls: 'total-row' },
+            { name: '  现金流入', key: 'invIn', val: () => data.revenue.map((_, i) => i === data.totalYears - 1 ? residualValue + ProjectData.investment.workingCapital : 0) },
+            { name: '  现金流出', key: 'invOut', val: () => data.revenue.map((_, i) => i < data.cp ? totalInvestment / data.cp : (i === data.cp ? ProjectData.investment.workingCapital : 0)) },
+            { name: '三、筹资活动净现金流量', key: 'financingCashflow', cls: 'total-row' },
+            { name: '  现金流入', key: 'finIn', val: () => data.revenue.map((_, i) => i < data.cp ? totalInvestment / data.cp : (i === data.cp ? loanPrincipal : 0)) },
+            { name: '  现金流出', key: 'finOut', val: () => data.revenue.map((_, i) => {
+                if (i < data.cp) return 0;
+                const ry = i - data.cp;
+                let out = 0;
+                if (ry < repaymentSchedule.length) {
+                    out += repaymentSchedule[ry].principal + repaymentSchedule[ry].interest;
+                }
+                // 股利分配
+                if (data.netProfit[i] > 0) {
+                    out += (data.netProfit[i] - data.surplusReserve[i] - data.undistributedProfit[i]);
+                }
+                return out;
+            }) },
+            { name: '四、净现金流量(1+2+3)', key: 'financialNetCashflow', cls: 'highlight' },
+            { name: '五、累计盈余资金', key: 'cumulativeSurplus', cls: 'subtotal-row' },
+        ];
+
+        let bodyHtml = '';
+        rows.forEach(row => {
+            const values = row.val ? row.val() : data[row.key] || data.revenue.map(() => 0);
+            const cls = row.cls || '';
+            bodyHtml += `<tr class="${cls}"><td class="sticky-col">${row.name}</td>`;
+            values.forEach(v => {
+                const numCls = v < 0 ? 'num neg' : 'num';
+                bodyHtml += `<td class="${numCls}">${formatNumber(v)}</td>`;
+            });
+            bodyHtml += '</tr>';
+        });
+        tbody.innerHTML = bodyHtml;
+    }
+
+    function renderSummary(data) {
+        const container = document.getElementById('summaryCards');
+        const totalRevenue = data.revenue.reduce((a, b) => a + b, 0);
+        const totalProfit = data.profit.reduce((a, b) => a + b, 0);
+        const totalNetProfit = data.netProfit.reduce((a, b) => a + b, 0);
+        const avgProfitRate = totalRevenue > 0 ? totalProfit / totalRevenue : 0;
+
+        container.innerHTML = `
+            <div class="summary-card">
+                <div class="label">运营期营业收入合计</div>
+                <div class="value">${formatNumber(totalRevenue, 0)}<span class="unit">万元</span></div>
+            </div>
+            <div class="summary-card">
+                <div class="label">利润总额合计</div>
+                <div class="value">${formatNumber(totalProfit, 0)}<span class="unit">万元</span></div>
+            </div>
+            <div class="summary-card">
+                <div class="label">净利润合计</div>
+                <div class="value">${formatNumber(totalNetProfit, 0)}<span class="unit">万元</span></div>
+            </div>
+            <div class="summary-card">
+                <div class="label">平均销售利润率</div>
+                <div class="value">${formatPercent(avgProfitRate)}</div>
+            </div>
+            <div class="summary-card">
+                <div class="label">正常年折旧费</div>
+                <div class="value">${formatNumber(data.depreciation[data.cp] || 0, 0)}<span class="unit">万元/年</span></div>
+            </div>
+            <div class="summary-card">
+                <div class="label">正常年摊销费</div>
+                <div class="value">${formatNumber(data.amortization[data.cp] || 0, 0)}<span class="unit">万元/年</span></div>
+            </div>
+        `;
+    }
+
+    function renderIndicators(data) {
+        const container = document.getElementById('indicatorGrid');
+        const benchmark = ProjectData.basic.benchmarkRate;
+
+        // 项目投资所得税前NPV和IRR
+        const preTaxFlows = data.netCashflow;
+        const preTaxNPV = Calculator.calculateNPV(preTaxFlows, benchmark);
+        const preTaxIRR = Calculator.calculateIRR(preTaxFlows) || 0;
+        const preTaxPayback = Calculator.calculatePaybackPeriod(preTaxFlows) || 0;
+
+        // 项目投资所得税后
+        const afterTaxFlows = data.netCashflow.map((v, i) => v - data.adjustedTax[i]);
+        const afterTaxNPV = Calculator.calculateNPV(afterTaxFlows, benchmark);
+        const afterTaxIRR = Calculator.calculateIRR(afterTaxFlows) || 0;
+        const afterTaxPayback = Calculator.calculatePaybackPeriod(afterTaxFlows) || 0;
+
+        // 资本金IRR
+        const capitalIRR = Calculator.calculateIRR(data.capitalNetCashflow) || 0;
+        const capitalNPV = Calculator.calculateNPV(data.capitalNetCashflow, benchmark);
+
+        // 总投资收益率
+        const totalInvestment = ProjectData.investment.engineeringCost + ProjectData.investment.otherCost
+            + ProjectData.investment.basicReserve + ProjectData.investment.priceReserve
+            + ProjectData.investment.constructionInterest + ProjectData.investment.workingCapital;
+        const avgEbit = data.ebit.slice(data.cp).reduce((a, b) => a + b, 0) / data.op;
+        const roi = avgEbit / totalInvestment;
+
+        // 资本金净利润率
+        const avgNetProfit = data.netProfit.slice(data.cp).reduce((a, b) => a + b, 0) / data.op;
+        const roe = avgNetProfit / (totalInvestment * ProjectData.financing.capitalRatio);
+
+        container.innerHTML = `
+            <div class="indicator-card">
+                <div class="title">项目投资所得税前NPV</div>
+                <div class="value" style="color:${preTaxNPV >= 0 ? '#52c41a' : '#f5222d'}">${formatNumber(preTaxNPV, 0)}</div>
+                <div class="desc">基准收益率 ${formatPercent(benchmark)} 下</div>
+                <div class="chart-bar"><div class="chart-bar-fill" style="width:${Math.min(Math.abs(preTaxNPV)/Math.max(Math.abs(preTaxNPV),100000)*100,100)}%"></div></div>
+            </div>
+            <div class="indicator-card">
+                <div class="title">项目投资所得税前IRR</div>
+                <div class="value" style="color:${preTaxIRR >= benchmark ? '#52c41a' : '#f5222d'}">${formatPercent(preTaxIRR)}</div>
+                <div class="desc">基准收益率 ${formatPercent(benchmark)}</div>
+            </div>
+            <div class="indicator-card">
+                <div class="title">项目投资所得税前回收期</div>
+                <div class="value">${preTaxPayback.toFixed(2)} 年</div>
+                <div class="desc">含建设期</div>
+            </div>
+            <div class="indicator-card">
+                <div class="title">项目投资所得税后NPV</div>
+                <div class="value" style="color:${afterTaxNPV >= 0 ? '#52c41a' : '#f5222d'}">${formatNumber(afterTaxNPV, 0)}</div>
+                <div class="desc">基准收益率 ${formatPercent(benchmark)} 下</div>
+            </div>
+            <div class="indicator-card">
+                <div class="title">项目投资所得税后IRR</div>
+                <div class="value" style="color:${afterTaxIRR >= benchmark ? '#52c41a' : '#f5222d'}">${formatPercent(afterTaxIRR)}</div>
+                <div class="desc">基准收益率 ${formatPercent(benchmark)}</div>
+            </div>
+            <div class="indicator-card">
+                <div class="title">项目投资所得税后回收期</div>
+                <div class="value">${afterTaxPayback.toFixed(2)} 年</div>
+                <div class="desc">含建设期</div>
+            </div>
+            <div class="indicator-card">
+                <div class="title">资本金NPV</div>
+                <div class="value" style="color:${capitalNPV >= 0 ? '#52c41a' : '#f5222d'}">${formatNumber(capitalNPV, 0)}</div>
+                <div class="desc">基准收益率 ${formatPercent(benchmark)} 下</div>
+            </div>
+            <div class="indicator-card">
+                <div class="title">资本金IRR</div>
+                <div class="value" style="color:${capitalIRR >= benchmark ? '#52c41a' : '#f5222d'}">${formatPercent(capitalIRR)}</div>
+                <div class="desc">基准收益率 ${formatPercent(benchmark)}</div>
+            </div>
+            <div class="indicator-card">
+                <div class="title">总投资收益率(ROI)</div>
+                <div class="value">${formatPercent(roi)}</div>
+                <div class="desc">年平均息税前利润/总投资</div>
+            </div>
+            <div class="indicator-card">
+                <div class="title">资本金净利润率(ROE)</div>
+                <div class="value">${formatPercent(roe)}</div>
+                <div class="desc">年平均净利润/资本金</div>
+            </div>
+        `;
+    }
+
+    // ===================== 导出功能 =====================
+    function exportTable(type) {
+        const data = computeAllTables();
+        let filename, rows, headers;
+        const yearLabels = data.years.map(i => i < data.cp ? `建设期${i+1}年` : `运营期${i-data.cp+1}年`);
+
+        switch(type) {
+            case 'profit':
+                filename = '利润与利润分配表_B12.xlsx';
+                headers = ['项目', ...yearLabels];
+                rows = [
+                    ['一、营业收入', ...data.revenue.map(v => v)],
+                    ['  补贴收入', ...data.revenue.map((_, i) => i < data.cp ? 0 : ProjectData.revenue.subsidyIncome)],
+                    ['二、增值税', ...data.vat],
+                    ['三、税金及附加', ...data.surcharge],
+                    ['四、总成本费用', ...data.totalCost],
+                    ['  其中:经营成本', ...data.operatingCost],
+                    ['       折旧费', ...data.depreciation],
+                    ['       摊销费', ...data.amortization],
+                    ['       利息支出', ...data.interest],
+                    ['五、利润总额', ...data.profit],
+                    ['  减:所得税', ...data.incomeTax],
+                    ['六、净利润', ...data.netProfit],
+                    ['  法定盈余公积金', ...data.surplusReserve],
+                    ['  可供分配利润', ...data.distributableProfit],
+                    ['  未分配利润', ...data.undistributedProfit],
+                ];
+                break;
+            case 'cashflow':
+                filename = '项目投资现金流量表_B9.xlsx';
+                headers = ['项目', ...yearLabels];
+                rows = [
+                    ['一、现金流入', ...data.cashIn],
+                    ['  营业收入', ...data.revenue],
+                    ['  补贴收入', ...data.revenue.map((_, i) => i < data.cp ? 0 : ProjectData.revenue.subsidyIncome)],
+                    ['二、现金流出', ...data.cashOut],
+                    ['  经营成本', ...data.operatingCost],
+                    ['  税金及附加', ...data.surcharge],
+                    ['三、所得税前净现金流量', ...data.netCashflow],
+                    ['四、累计所得税前净现金流量', ...data.cumulativeNetCashflow],
+                    ['五、调整所得税', ...data.adjustedTax],
+                    ['六、所得税后净现金流量', ...data.netCashflow.map((v, i) => v - data.adjustedTax[i])],
+                ];
+                break;
+            case 'capital':
+                filename = '项目资本金现金流量表_B10.xlsx';
+                headers = ['项目', ...yearLabels];
+                rows = [
+                    ['一、现金流入', ...data.capitalCashIn],
+                    ['  营业收入', ...data.revenue],
+                    ['二、现金流出', ...data.capitalCashOut],
+                    ['  经营成本', ...data.operatingCost],
+                    ['  税金及附加', ...data.surcharge],
+                    ['  所得税', ...data.incomeTax],
+                    ['三、净现金流量', ...data.capitalNetCashflow],
+                ];
+                break;
+            case 'financial':
+                filename = '财务计划现金流量表_B13.xlsx';
+                headers = ['项目', ...yearLabels];
+                rows = [
+                    ['一、经营活动净现金流量', ...data.operatingCashflow],
+                    ['二、投资活动净现金流量', ...data.investingCashflow],
+                    ['三、筹资活动净现金流量', ...data.financingCashflow],
+                    ['四、净现金流量', ...data.financialNetCashflow],
+                    ['五、累计盈余资金', ...data.cumulativeSurplus],
+                ];
+                break;
+            default:
+                return;
+        }
+
+        const ws = XLSX.utils.aoa_to_sheet([headers, ...rows]);
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, 'Sheet1');
+        XLSX.writeFile(wb, filename);
+        showToast(`已导出: ${filename}`);
+    }
+
+    function exportAll() {
+        exportTable('profit');
+        setTimeout(() => exportTable('cashflow'), 500);
+        setTimeout(() => exportTable('capital'), 1000);
+        setTimeout(() => exportTable('financial'), 1500);
+    }
+
+    function recalculateAll() {
+        loadData();
+        showToast('已重新计算所有报表');
+    }
+
+    // ===================== 初始化 =====================
+    document.addEventListener('DOMContentLoaded', () => {
+        loadData();
+    });
+    </script>
+</body>
+</html>
