@@ -1,0 +1,1003 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>可研报告大纲模块</title>
+<style>
+  /* ========== 基础重置与变量 ========== */
+  :root {
+    --primary: #1a5f7a;
+    --secondary: #57c5b6;
+    --accent: #159895;
+    --bg: #f5f7fa;
+    --card-bg: #ffffff;
+    --text-main: #333333;
+    --text-sub: #666666;
+    --border: #e0e0e0;
+    --success: #52c41a;
+    --warning: #faad14;
+    --danger: #f5222d;
+    --header-h: 60px;
+    --sidebar-w: 240px;
+    --font-main: "Microsoft YaHei", "PingFang SC", sans-serif;
+    --font-num: "Consolas", monospace;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: var(--font-main);
+    background: var(--bg);
+    color: var(--text-main);
+    min-height: 100vh;
+  }
+  a { text-decoration: none; color: inherit; }
+  ul { list-style: none; }
+  button { font-family: var(--font-main); cursor: pointer; border: none; outline: none; }
+  input, select, textarea { font-family: var(--font-main); outline: none; }
+
+  /* ========== 顶部导航栏 ========== */
+  .header {
+    height: var(--header-h);
+    background: var(--primary);
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 24px;
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    z-index: 1000;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+  }
+  .header-title { font-size: 18px; font-weight: bold; letter-spacing: 1px; }
+  .header-actions { display: flex; gap: 12px; align-items: center; }
+  .header-btn {
+    background: rgba(255,255,255,0.15);
+    color: #fff;
+    padding: 6px 14px;
+    border-radius: 4px;
+    font-size: 13px;
+    transition: background 0.2s;
+  }
+  .header-btn:hover { background: rgba(255,255,255,0.30); }
+  .header-btn.primary { background: var(--secondary); }
+  .header-btn.primary:hover { background: var(--accent); }
+
+  /* ========== 左侧菜单 ========== */
+  .sidebar {
+    width: var(--sidebar-w);
+    background: var(--card-bg);
+    border-right: 1px solid var(--border);
+    position: fixed;
+    top: var(--header-h);
+    left: 0; bottom: 0;
+    overflow-y: auto;
+    z-index: 900;
+    padding: 16px 0;
+  }
+  .nav-item {
+    display: flex;
+    align-items: center;
+    padding: 12px 20px;
+    color: var(--text-main);
+    font-size: 14px;
+    transition: all 0.2s;
+    border-left: 3px solid transparent;
+  }
+  .nav-item:hover { background: #f0f5ff; color: var(--primary); }
+  .nav-item.active { background: #e6f7ff; color: var(--primary); border-left-color: var(--primary); font-weight: bold; }
+  .nav-icon { width: 20px; text-align: center; margin-right: 10px; font-size: 16px; }
+  .nav-divider { height: 1px; background: var(--border); margin: 8px 16px; }
+  .nav-section-title { padding: 8px 20px; font-size: 12px; color: var(--text-sub); text-transform: uppercase; }
+
+  /* ========== 主内容区 ========== */
+  .main {
+    margin-left: var(--sidebar-w);
+    margin-top: var(--header-h);
+    padding: 24px;
+    min-height: calc(100vh - var(--header-h));
+  }
+  .page-title {
+    font-size: 22px; font-weight: bold; color: var(--primary);
+    margin-bottom: 20px; padding-bottom: 12px;
+    border-bottom: 2px solid var(--secondary);
+  }
+
+  /* ========== 卡片 ========== */
+  .card {
+    background: var(--card-bg);
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    padding: 20px;
+    margin-bottom: 20px;
+  }
+  .card-title {
+    font-size: 16px; font-weight: bold; color: var(--primary);
+    margin-bottom: 14px; display: flex; align-items: center; gap: 8px;
+  }
+  .card-title::before {
+    content: '';
+    display: inline-block;
+    width: 4px; height: 18px;
+    background: var(--secondary);
+    border-radius: 2px;
+  }
+
+  /* ========== 标签切换 ========== */
+  .tab-bar { display: flex; gap: 4px; margin-bottom: 16px; border-bottom: 2px solid var(--border); }
+  .tab-btn {
+    padding: 10px 20px;
+    background: none;
+    border: none;
+    border-bottom: 2px solid transparent;
+    font-size: 14px; color: var(--text-sub);
+    margin-bottom: -2px;
+    transition: all 0.2s;
+  }
+  .tab-btn:hover { color: var(--primary); }
+  .tab-btn.active { color: var(--primary); border-bottom-color: var(--secondary); font-weight: bold; }
+
+  /* ========== 大纲列表 ========== */
+  .outline-tree { font-size: 14px; }
+  .outline-item {
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    margin-bottom: 8px;
+    overflow: hidden;
+    transition: box-shadow 0.2s;
+  }
+  .outline-item:hover { box-shadow: 0 2px 6px rgba(0,0,0,0.06); }
+  .outline-header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 12px 16px;
+    background: #fafbfc;
+    cursor: pointer;
+    user-select: none;
+    transition: background 0.2s;
+  }
+  .outline-header:hover { background: #f0f5ff; }
+  .outline-header-left { display: flex; align-items: center; gap: 10px; }
+  .outline-number {
+    font-family: var(--font-num);
+    font-weight: bold; color: var(--primary);
+    min-width: 36px; text-align: center;
+  }
+  .outline-title-text { font-weight: 500; }
+  .outline-toggle {
+    width: 24px; height: 24px;
+    display: flex; align-items: center; justify-content: center;
+    border-radius: 4px; transition: background 0.2s;
+  }
+  .outline-toggle:hover { background: var(--border); }
+  .outline-toggle-icon { transition: transform 0.2s; font-size: 12px; color: var(--text-sub); }
+  .outline-item.expanded .outline-toggle-icon { transform: rotate(90deg); }
+
+  /* 完成状态复选框 */
+  .check-btn {
+    width: 20px; height: 20px;
+    border: 2px solid var(--border);
+    border-radius: 4px;
+    display: flex; align-items: center; justify-content: center;
+    margin-right: 8px;
+    transition: all 0.2s;
+    flex-shrink: 0;
+  }
+  .check-btn.checked {
+    background: var(--success); border-color: var(--success);
+    color: #fff; font-size: 12px;
+  }
+
+  /* 子章节 */
+  .outline-children {
+    display: none;
+    padding: 8px 16px 12px 52px;
+    background: #fff;
+    border-top: 1px solid var(--border);
+  }
+  .outline-item.expanded .outline-children { display: block; }
+  .child-item {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 8px 0;
+    border-bottom: 1px dashed var(--border);
+  }
+  .child-item:last-child { border-bottom: none; }
+  .child-left { display: flex; align-items: center; gap: 8px; }
+  .child-number { color: var(--accent); font-family: var(--font-num); font-size: 13px; min-width: 40px; }
+  .child-title { color: var(--text-main); font-size: 13px; }
+  .child-actions { display: flex; gap: 8px; }
+  .child-tag {
+    padding: 2px 8px; border-radius: 4px; font-size: 11px;
+    background: #e6f7ff; color: var(--primary);
+  }
+  .child-tag.required { background: #fff1f0; color: var(--danger); }
+  .child-tag.optional { background: #f6ffed; color: var(--success); }
+
+  /* 章节说明面板 */
+  .desc-panel {
+    display: none;
+    background: #f6ffed;
+    border: 1px solid #b7eb8f;
+    border-radius: 6px;
+    padding: 12px 16px;
+    margin-top: 8px;
+    font-size: 13px;
+    color: var(--text-main);
+    line-height: 1.7;
+  }
+  .desc-panel.show { display: block; }
+  .desc-panel h4 { color: var(--primary); margin-bottom: 6px; font-size: 13px; }
+  .desc-panel ul { margin-left: 16px; list-style: disc; }
+  .desc-panel li { margin-bottom: 4px; }
+
+  /* 进度条 */
+  .progress-section { display: flex; align-items: center; gap: 16px; margin-bottom: 20px; }
+  .progress-bar-bg {
+    flex: 1; height: 10px; background: var(--border); border-radius: 5px; overflow: hidden;
+  }
+  .progress-bar-fill {
+    height: 100%; background: var(--secondary); border-radius: 5px;
+    transition: width 0.4s ease;
+  }
+  .progress-text { font-size: 14px; color: var(--primary); font-weight: bold; min-width: 80px; text-align: right; }
+
+  /* 按钮组 */
+  .btn-group { display: flex; gap: 10px; margin-bottom: 16px; }
+  .btn {
+    padding: 8px 16px; border-radius: 4px; font-size: 13px;
+    transition: all 0.2s; display: inline-flex; align-items: center; gap: 6px;
+  }
+  .btn-primary { background: var(--primary); color: #fff; }
+  .btn-primary:hover { background: var(--accent); }
+  .btn-default { background: #fff; color: var(--text-main); border: 1px solid var(--border); }
+  .btn-default:hover { border-color: var(--primary); color: var(--primary); }
+  .btn-success { background: var(--success); color: #fff; }
+  .btn-success:hover { background: #389e0d; }
+
+  /* 响应式 */
+  @media (max-width: 768px) {
+    .sidebar { display: none; }
+    .main { margin-left: 0; padding: 16px; }
+    .header-title { font-size: 15px; }
+  }
+
+  /* 提示框 */
+  .toast {
+    position: fixed; bottom: 24px; right: 24px;
+    background: var(--primary); color: #fff;
+    padding: 10px 18px; border-radius: 6px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    font-size: 13px; z-index: 2000;
+    opacity: 0; transform: translateY(20px);
+    transition: all 0.3s ease;
+  }
+  .toast.show { opacity: 1; transform: translateY(0); }
+
+  /* 统计面板 */
+  .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 16px; margin-bottom: 20px; }
+  .stat-card {
+    background: var(--card-bg); border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    padding: 16px; text-align: center;
+  }
+  .stat-value { font-size: 24px; font-weight: bold; color: var(--primary); font-family: var(--font-num); }
+  .stat-label { font-size: 12px; color: var(--text-sub); margin-top: 4px; }
+
+  /* 搜索框 */
+  .search-box {
+    width: 100%; padding: 10px 14px; border: 1px solid var(--border);
+    border-radius: 6px; font-size: 13px; margin-bottom: 16px;
+  }
+  .search-box:focus { border-color: var(--secondary); }
+</style>
+</head>
+<body>
+
+<!-- 顶部导航栏 -->
+<header class="header">
+  <div class="header-title">📋 可研报告编写工具 — 大纲模块</div>
+  <div class="header-actions">
+    <button class="header-btn" onclick="expandAll()">全部展开</button>
+    <button class="header-btn" onclick="collapseAll()">全部收起</button>
+    <button class="header-btn primary" onclick="saveData()">💾 保存进度</button>
+  </div>
+</header>
+
+<!-- 左侧菜单 -->
+<aside class="sidebar">
+  <div class="nav-section-title">功能模块</div>
+  <a href="index.html" class="nav-item"><span class="nav-icon">🏠</span>首页与参数</a>
+  <a href="outline.html" class="nav-item active"><span class="nav-icon">📋</span>可研报告大纲</a>
+  <a href="investment.html" class="nav-item"><span class="nav-icon">💰</span>投资估算</a>
+  <a href="cost.html" class="nav-item"><span class="nav-icon">📊</span>成本费用</a>
+  <a href="profit-cashflow.html" class="nav-item"><span class="nav-icon">📈</span>利润与现金流</a>
+  <a href="balance.html" class="nav-item"><span class="nav-icon">⚖️</span>资产负债</a>
+  <a href="indicators.html" class="nav-item"><span class="nav-icon">🎯</span>评价指标</a>
+  <div class="nav-divider"></div>
+  <div class="nav-section-title">工具</div>
+  <a href="#" class="nav-item" onclick="exportExcel()"><span class="nav-icon">📤</span>导出Excel</a>
+  <a href="#" class="nav-item" onclick="window.print()"><span class="nav-icon">🖨️</span>打印大纲</a>
+</aside>
+
+<!-- 主内容 -->
+<main class="main">
+
+  <div class="page-title">📋 可研报告大纲</div>
+
+  <!-- 统计面板 -->
+  <div class="stats-grid">
+    <div class="stat-card">
+      <div class="stat-value" id="stat-total">0</div>
+      <div class="stat-label">总章节数</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-value" id="stat-done">0</div>
+      <div class="stat-label">已完成</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-value" id="stat-required">0</div>
+      <div class="stat-label">必写章节</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-value" id="stat-progress">0%</div>
+      <div class="stat-label">完成进度</div>
+    </div>
+  </div>
+
+  <!-- 进度条 -->
+  <div class="progress-section">
+    <div class="progress-bar-bg"><div class="progress-bar-fill" id="progress-bar" style="width:0%"></div></div>
+    <div class="progress-text" id="progress-text">0%</div>
+  </div>
+
+  <!-- 搜索 -->
+  <input type="text" class="search-box" id="searchInput" placeholder="🔍 搜索章节名称或关键词..." oninput="filterOutline(this.value)">
+
+  <!-- 标签切换 -->
+  <div class="card">
+    <div class="tab-bar">
+      <button class="tab-btn active" data-type="government" onclick="switchTab('government')">政府投资项目大纲（通用大纲2023版）</button>
+      <button class="tab-btn" data-type="enterprise" onclick="switchTab('enterprise')">企业投资项目大纲（参考大纲2023版）</button>
+    </div>
+
+    <!-- 操作按钮 -->
+    <div class="btn-group" style="margin-bottom:12px;">
+      <button class="btn btn-default" onclick="markAllDone(true)">全部标记完成</button>
+      <button class="btn btn-default" onclick="markAllDone(false)">全部标记未完成</button>
+      <button class="btn btn-default" onclick="showAllDesc()">展开全部说明</button>
+      <button class="btn btn-default" onclick="hideAllDesc()">收起全部说明</button>
+    </div>
+
+    <!-- 政府投资项目大纲 -->
+    <div id="outline-government" class="outline-panel"></div>
+
+    <!-- 企业投资项目大纲 -->
+    <div id="outline-enterprise" class="outline-panel" style="display:none;"></div>
+  </div>
+
+  <!-- 章节说明参考 -->
+  <div class="card">
+    <div class="card-title">章节编写说明参考</div>
+    <div id="desc-reference" style="font-size:13px;line-height:1.8;color:var(--text-sub);">
+      <p>点击大纲左侧复选框可标记章节完成状态。点击右侧箭头可展开/收起子章节及编写说明。</p>
+      <p>红色标签为必写章节，绿色标签为可选章节。请根据项目实际情况调整大纲内容。</p>
+    </div>
+  </div>
+
+</main>
+
+<!-- Toast提示 -->
+<div class="toast" id="toast"></div>
+
+<script>
+/* ============================
+   共享数据模型 (ProjectData)
+   ============================ */
+const STORAGE_KEY = 'feasibility_study_data';
+
+const ProjectData = {
+  basic: {
+    projectName: '',
+    projectType: '政府投资',
+    constructionPeriod: 2,
+    operationPeriod: 20,
+    benchmarkRate: 0.08,
+  },
+  investment: {
+    engineeringCost: 0,
+    otherCost: 0,
+    basicReserve: 0,
+    priceReserve: 0,
+    constructionInterest: 0,
+    workingCapital: 0,
+  },
+  financing: {
+    capitalRatio: 0.20,
+    loanAmount: 0,
+    loanRate: 0.05,
+    loanTerm: 10,
+    repaymentMethod: 'equal_payment',
+  },
+  revenue: {
+    annualRevenue: 0,
+    loadRates: [],
+    subsidyIncome: 0,
+    vatRate: 0.13,
+    surchargeRate: 0.12,
+    incomeTaxRate: 0.25,
+  },
+  cost: {
+    rawMaterial: 0,
+    fuel: 0,
+    salary: 0,
+    repair: 0,
+    other: 0,
+    depreciationMethod: 'straight',
+    depreciationYears: 20,
+    residualRate: 0.05,
+    amortization: 0,
+  }
+};
+
+// 加载数据
+function loadData() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      Object.assign(ProjectData.basic, parsed.basic || {});
+      Object.assign(ProjectData.investment, parsed.investment || {});
+      Object.assign(ProjectData.financing, parsed.financing || {});
+      Object.assign(ProjectData.revenue, parsed.revenue || {});
+      Object.assign(ProjectData.cost, parsed.cost || {});
+    }
+  } catch (e) { console.warn('加载数据失败', e); }
+}
+
+// 保存数据
+function saveData() {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(ProjectData));
+    localStorage.setItem('outline_progress', JSON.stringify(outlineProgress));
+    showToast('✅ 保存成功！');
+  } catch (e) { showToast('❌ 保存失败'); }
+}
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2500);
+}
+
+/* ============================
+   核心计算函数 (Calculator)
+   ============================ */
+const Calculator = {
+  // 直线法折旧
+  calculateDepreciation: (originalValue, residualRate, years) => {
+    return originalValue * (1 - residualRate) / years;
+  },
+  // 建设期利息（简化）
+  calculateConstructionInterest: (loans, rate) => {
+    // 各年应计利息 = (年初借款本息累计 + 本年借款额/2) × 年利率
+    let totalInterest = 0;
+    let cumulative = 0;
+    for (let i = 0; i < loans.length; i++) {
+      const yearInterest = (cumulative + loans[i] / 2) * rate;
+      totalInterest += yearInterest;
+      cumulative += loans[i] + yearInterest;
+    }
+    return totalInterest;
+  },
+  // 等额还本付息（年金法）
+  calculateEqualPayment: (principal, rate, years) => {
+    if (rate === 0) return principal / years;
+    return principal * (rate * Math.pow(1 + rate, years)) / (Math.pow(1 + rate, years) - 1);
+  },
+  // NPV
+  calculateNPV: (cashFlows, discountRate) => {
+    let npv = 0;
+    for (let t = 0; t < cashFlows.length; t++) {
+      npv += cashFlows[t] / Math.pow(1 + discountRate, t);
+    }
+    return npv;
+  },
+  // IRR（牛顿迭代法）
+  calculateIRR: (cashFlows, guess = 0.1) => {
+    const maxIter = 100; const tol = 1e-6;
+    let rate = guess;
+    for (let i = 0; i < maxIter; i++) {
+      let npv = 0, dnpv = 0;
+      for (let t = 0; t < cashFlows.length; t++) {
+        npv += cashFlows[t] / Math.pow(1 + rate, t);
+        dnpv -= t * cashFlows[t] / Math.pow(1 + rate, t + 1);
+      }
+      if (Math.abs(npv) < tol) return rate;
+      if (Math.abs(dnpv) < tol) break;
+      rate -= npv / dnpv;
+      if (rate < -1) rate = -0.9999;
+    }
+    return null;
+  },
+  // 投资回收期
+  calculatePaybackPeriod: (cashFlows) => {
+    let cumulative = 0;
+    for (let t = 0; t < cashFlows.length; t++) {
+      const prev = cumulative;
+      cumulative += cashFlows[t];
+      if (cumulative >= 0 && prev < 0) {
+        return t + Math.abs(prev) / cashFlows[t];
+      }
+    }
+    return null;
+  }
+};
+
+/* ============================
+   大纲数据定义
+   ============================ */
+// 政府投资项目通用大纲（2023版）
+const governmentOutline = [
+  {
+    id: 'g1', num: '一', title: '项目概述', required: true,
+    desc: '简述项目背景、目的、必要性，以及编制依据和范围。',
+    children: [
+      { id: 'g1-1', num: '1.1', title: '项目名称及承办单位', required: true },
+      { id: 'g1-2', num: '1.2', title: '编制依据', required: true },
+      { id: 'g1-3', num: '1.3', title: '研究范围', required: true },
+      { id: 'g1-4', num: '1.4', title: '项目提出的理由与过程', required: true },
+    ]
+  },
+  {
+    id: 'g2', num: '二', title: '项目建设的必要性', required: true,
+    desc: '从宏观政策、区域发展、行业需求等角度论证项目建设的必要性。',
+    children: [
+      { id: 'g2-1', num: '2.1', title: '政策背景分析', required: true },
+      { id: 'g2-2', num: '2.2', title: '区域发展需求', required: true },
+      { id: 'g2-3', num: '2.3', title: '行业发展趋势', required: false },
+      { id: 'g2-4', num: '2.4', title: '现有设施及问题分析', required: true },
+    ]
+  },
+  {
+    id: 'g3', num: '三', title: '需求分析与建设规模', required: true,
+    desc: '分析市场需求、服务范围、用户群体，确定建设规模及主要技术经济指标。',
+    children: [
+      { id: 'g3-1', num: '3.1', title: '需求分析', required: true },
+      { id: 'g3-2', num: '3.2', title: '建设规模确定', required: true },
+      { id: 'g3-3', num: '3.3', title: '主要技术经济指标', required: true },
+    ]
+  },
+  {
+    id: 'g4', num: '四', title: '建设条件与选址', required: true,
+    desc: '分析项目建设所需的区位、交通、能源、环境等条件，进行选址方案比较。',
+    children: [
+      { id: 'g4-1', num: '4.1', title: '区域概况', required: true },
+      { id: 'g4-2', num: '4.2', title: '自然条件', required: true },
+      { id: 'g4-3', num: '4.3', title: '基础设施条件', required: true },
+      { id: 'g4-4', num: '4.4', title: '选址方案比较', required: true },
+      { id: 'g4-5', num: '4.5', title: '选址结论', required: true },
+    ]
+  },
+  {
+    id: 'g5', num: '五', title: '工程技术方案', required: true,
+    desc: '阐述工程技术路线、设计方案、工艺流程、设备选型等内容。',
+    children: [
+      { id: 'g5-1', num: '5.1', title: '设计原则与标准', required: true },
+      { id: 'g5-2', num: '5.2', title: '总平面布置', required: true },
+      { id: 'g5-3', num: '5.3', title: '建筑方案', required: true },
+      { id: 'g5-4', num: '5.4', title: '结构方案', required: true },
+      { id: 'g5-5', num: '5.5', title: '给排水及消防', required: true },
+      { id: 'g5-6', num: '5.6', title: '电气方案', required: true },
+      { id: 'g5-7', num: '5.7', title: '暖通方案', required: false },
+      { id: 'g5-8', num: '5.8', title: '智能化方案', required: false },
+    ]
+  },
+  {
+    id: 'g6', num: '六', title: '节能与绿色建筑设计', required: true,
+    desc: '分析能耗状况，提出节能措施，符合绿色建筑标准要求。',
+    children: [
+      { id: 'g6-1', num: '6.1', title: '能耗分析', required: true },
+      { id: 'g6-2', num: '6.2', title: '节能措施', required: true },
+      { id: 'g6-3', num: '6.3', title: '绿色建筑专篇', required: true },
+    ]
+  },
+  {
+    id: 'g7', num: '七', title: '环境影响评价', required: true,
+    desc: '分析项目对环境的影响，提出环保措施及投资估算。',
+    children: [
+      { id: 'g7-1', num: '7.1', title: '环境现状', required: true },
+      { id: 'g7-2', num: '7.2', title: '环境影响分析', required: true },
+      { id: 'g7-3', num: '7.3', title: '环境保护措施', required: true },
+      { id: 'g7-4', num: '7.4', title: '环境影响评价结论', required: true },
+    ]
+  },
+  {
+    id: 'g8', num: '八', title: '劳动安全与卫生消防', required: true,
+    desc: '分析劳动安全、职业卫生、消防设计等要求。',
+    children: [
+      { id: 'g8-1', num: '8.1', title: '劳动安全', required: true },
+      { id: 'g8-2', num: '8.2', title: '职业卫生', required: true },
+      { id: 'g8-3', num: '8.3', title: '消防设计', required: true },
+    ]
+  },
+  {
+    id: 'g9', num: '九', title: '项目组织管理与实施进度', required: true,
+    desc: '明确项目组织机构、建设管理模式、实施进度安排。',
+    children: [
+      { id: 'g9-1', num: '9.1', title: '项目组织管理', required: true },
+      { id: 'g9-2', num: '9.2', title: '建设管理模式', required: true },
+      { id: 'g9-3', num: '9.3', title: '实施进度计划', required: true },
+    ]
+  },
+  {
+    id: 'g10', num: '十', title: '投资估算与资金筹措', required: true,
+    desc: '按照《建设项目经济评价方法与参数（第三版）》编制投资估算，包括工程费用、其他费用、预备费、建设期利息、流动资金。',
+    children: [
+      { id: 'g10-1', num: '10.1', title: '投资估算依据', required: true },
+      { id: 'g10-2', num: '10.2', title: '建设投资估算', required: true },
+      { id: 'g10-3', num: '10.3', title: '建设期利息估算', required: true },
+      { id: 'g10-4', num: '10.4', title: '流动资金估算', required: false },
+      { id: 'g10-5', num: '10.5', title: '总投资估算汇总', required: true },
+      { id: 'g10-6', num: '10.6', title: '资金筹措方案', required: true },
+    ]
+  },
+  {
+    id: 'g11', num: '十一', title: '财务评价', required: true,
+    desc: '进行财务盈利能力分析、偿债能力分析、财务生存能力分析，计算NPV、IRR、投资回收期等评价指标。',
+    children: [
+      { id: 'g11-1', num: '11.1', title: '财务评价基础数据', required: true },
+      { id: 'g11-2', num: '11.2', title: '营业收入与税金估算', required: true },
+      { id: 'g11-3', num: '11.3', title: '成本费用估算', required: true },
+      { id: 'g11-4', num: '11.4', title: '利润及利润分配', required: true },
+      { id: 'g11-5', num: '11.5', title: '现金流量分析', required: true },
+      { id: 'g11-6', num: '11.6', title: '财务评价指标', required: true },
+      { id: 'g11-7', num: '11.7', title: '敏感性分析', required: true },
+      { id: 'g11-8', num: '11.8', title: '盈亏平衡分析', required: false },
+    ]
+  },
+  {
+    id: 'g12', num: '十二', title: '社会评价与风险分析', required: true,
+    desc: '分析项目对社会的正负面影响，识别主要风险并提出应对措施。',
+    children: [
+      { id: 'g12-1', num: '12.1', title: '社会评价', required: true },
+      { id: 'g12-2', num: '12.2', title: '风险识别', required: true },
+      { id: 'g12-3', num: '12.3', title: '风险评估', required: true },
+      { id: 'g12-4', num: '12.4', title: '风险应对措施', required: true },
+    ]
+  },
+  {
+    id: 'g13', num: '十三', title: '结论与建议', required: true,
+    desc: '综合各方面分析，给出项目可行性结论及下一步工作建议。',
+    children: [
+      { id: 'g13-1', num: '13.1', title: '综合评价结论', required: true },
+      { id: 'g13-2', num: '13.2', title: '存在问题', required: false },
+      { id: 'g13-3', num: '13.3', title: '下一步工作建议', required: true },
+    ]
+  },
+];
+
+// 企业投资项目参考大纲（2023版）
+const enterpriseOutline = [
+  {
+    id: 'e1', num: '一', title: '项目总论', required: true,
+    desc: '概述项目背景、投资主体、编制依据及研究范围。',
+    children: [
+      { id: 'e1-1', num: '1.1', title: '项目名称及投资主体', required: true },
+      { id: 'e1-2', num: '1.2', title: '编制依据', required: true },
+      { id: 'e1-3', num: '1.3', title: '研究范围与重点', required: true },
+      { id: 'e1-4', num: '1.4', title: '主要结论', required: true },
+    ]
+  },
+  {
+    id: 'e2', num: '二', title: '市场分析与预测', required: true,
+    desc: '分析行业市场现状、竞争格局、发展趋势，预测产品需求与价格。',
+    children: [
+      { id: 'e2-1', num: '2.1', title: '市场现状分析', required: true },
+      { id: 'e2-2', num: '2.2', title: '竞争格局分析', required: true },
+      { id: 'e2-3', num: '2.3', title: '市场需求预测', required: true },
+      { id: 'e2-4', num: '2.4', title: '产品价格预测', required: true },
+      { id: 'e2-5', num: '2.5', title: '市场风险分析', required: false },
+    ]
+  },
+  {
+    id: 'e3', num: '三', title: '建设方案', required: true,
+    desc: '确定产品方案、建设规模、技术方案、设备方案、工程方案。',
+    children: [
+      { id: 'e3-1', num: '3.1', title: '产品方案与建设规模', required: true },
+      { id: 'e3-2', num: '3.2', title: '技术方案', required: true },
+      { id: 'e3-3', num: '3.3', title: '设备方案', required: true },
+      { id: 'e3-4', num: '3.4', title: '工程方案', required: true },
+      { id: 'e3-5', num: '3.5', title: '原材料及动力供应', required: true },
+    ]
+  },
+  {
+    id: 'e4', num: '四', title: '厂址选择与建设条件', required: true,
+    desc: '进行厂址比较，分析自然条件、基础设施、配套资源。',
+    children: [
+      { id: 'e4-1', num: '4.1', title: '厂址选择', required: true },
+      { id: 'e4-2', num: '4.2', title: '建设条件', required: true },
+      { id: 'e4-3', num: '4.3', title: '征地拆迁与移民安置', required: false },
+    ]
+  },
+  {
+    id: 'e5', num: '五', title: '节能与资源利用', required: true,
+    desc: '分析能耗指标、资源利用效率，提出节能降耗措施。',
+    children: [
+      { id: 'e5-1', num: '5.1', title: '能耗分析', required: true },
+      { id: 'e5-2', num: '5.2', title: '节能措施', required: true },
+      { id: 'e5-3', num: '5.3', title: '资源综合利用', required: false },
+    ]
+  },
+  {
+    id: 'e6', num: '六', title: '环境影响评价', required: true,
+    desc: '分析项目建设和运营对环境的影响，提出环保措施。',
+    children: [
+      { id: 'e6-1', num: '6.1', title: '环境现状', required: true },
+      { id: 'e6-2', num: '6.2', title: '污染源分析', required: true },
+      { id: 'e6-3', num: '6.3', title: '环保措施与治理方案', required: true },
+      { id: 'e6-4', num: '6.4', title: '环保投资估算', required: true },
+    ]
+  },
+  {
+    id: 'e7', num: '七', title: '劳动安全卫生与消防', required: true,
+    desc: '分析劳动安全、职业卫生、消防设计等要求。',
+    children: [
+      { id: 'e7-1', num: '7.1', title: '劳动安全', required: true },
+      { id: 'e7-2', num: '7.2', title: '职业卫生', required: true },
+      { id: 'e7-3', num: '7.3', title: '消防设计', required: true },
+    ]
+  },
+  {
+    id: 'e8', num: '八', title: '组织机构与人力资源', required: true,
+    desc: '确定组织机构、人员编制、培训计划、薪酬方案。',
+    children: [
+      { id: 'e8-1', num: '8.1', title: '组织机构设置', required: true },
+      { id: 'e8-2', num: '8.2', title: '人力资源配置', required: true },
+      { id: 'e8-3', num: '8.3', title: '人员培训', required: false },
+    ]
+  },
+  {
+    id: 'e9', num: '九', title: '项目实施进度', required: true,
+    desc: '制定项目实施进度计划、招标方案、建设管理方案。',
+    children: [
+      { id: 'e9-1', num: '9.1', title: '建设工期', required: true },
+      { id: 'e9-2', num: '9.2', title: '实施进度安排', required: true },
+      { id: 'e9-3', num: '9.3', title: '招标方案', required: true },
+    ]
+  },
+  {
+    id: 'e10', num: '十', title: '投资估算', required: true,
+    desc: '估算建设投资、建设期利息、流动资金，汇总项目总投资。',
+    children: [
+      { id: 'e10-1', num: '10.1', title: '建设投资估算', required: true },
+      { id: 'e10-2', num: '10.2', title: '建设期利息', required: true },
+      { id: 'e10-3', num: '10.3', title: '流动资金', required: true },
+      { id: 'e10-4', num: '10.4', title: '投资估算汇总', required: true },
+    ]
+  },
+  {
+    id: 'e11', num: '十一', title: '融资方案', required: true,
+    desc: '确定资金来源、融资结构、融资条件、资金使用计划。',
+    children: [
+      { id: 'e11-1', num: '11.1', title: '资本金筹措', required: true },
+      { id: 'e11-2', num: '11.2', title: '债务资金筹措', required: true },
+      { id: 'e11-3', num: '11.3', title: '融资方案分析', required: true },
+    ]
+  },
+  {
+    id: 'e12', num: '十二', title: '财务分析', required: true,
+    desc: '进行财务评价，计算盈利能力、偿债能力、财务生存能力指标。',
+    children: [
+      { id: 'e12-1', num: '12.1', title: '财务评价基础数据', required: true },
+      { id: 'e12-2', num: '12.2', title: '营业收入与成本', required: true },
+      { id: 'e12-3', num: '12.3', title: '利润与利润分配', required: true },
+      { id: 'e12-4', num: '12.4', title: '现金流量分析', required: true },
+      { id: 'e12-5', num: '12.5', title: '财务指标计算', required: true },
+      { id: 'e12-6', num: '12.6', title: '偿债能力分析', required: true },
+      { id: 'e12-7', num: '12.7', title: '敏感性分析', required: true },
+      { id: 'e12-8', num: '12.8', title: '盈亏平衡分析', required: false },
+    ]
+  },
+  {
+    id: 'e13', num: '十三', title: '经济费用效益分析', required: false,
+    desc: '对具有明显外部性的项目，进行经济费用效益分析。',
+    children: [
+      { id: 'e13-1', num: '13.1', title: '经济费用估算', required: false },
+      { id: 'e13-2', num: '13.2', title: '经济效益估算', required: false },
+      { id: 'e13-3', num: '13.3', title: '经济评价指标', required: false },
+    ]
+  },
+  {
+    id: 'e14', num: '十四', title: '风险分析', required: true,
+    desc: '识别项目风险因素，进行风险评估，提出风险防范措施。',
+    children: [
+      { id: 'e14-1', num: '14.1', title: '风险因素识别', required: true },
+      { id: 'e14-2', num: '14.2', title: '风险评估', required: true },
+      { id: 'e14-3', num: '14.3', title: '风险防范措施', required: true },
+    ]
+  },
+  {
+    id: 'e15', num: '十五', title: '研究结论与建议', required: true,
+    desc: '给出综合评价结论，提出实施建议。',
+    children: [
+      { id: 'e15-1', num: '15.1', title: '推荐方案', required: true },
+      { id: 'e15-2', num: '15.2', title: '研究结论', required: true },
+      { id: 'e15-3', num: '15.3', title: '建议', required: false },
+    ]
+  },
+];
+
+/* ============================
+   状态管理
+   ============================ */
+let outlineProgress = {};
+let currentTab = 'government';
+
+function loadProgress() {
+  try {
+    const raw = localStorage.getItem('outline_progress');
+    if (raw) outlineProgress = JSON.parse(raw);
+  } catch (e) { outlineProgress = {}; }
+}
+
+function isDone(id) { return !!outlineProgress[id]; }
+function toggleDone(id) {
+  outlineProgress[id] = !outlineProgress[id];
+  renderOutline();
+  updateStats();
+}
+
+/* ============================
+   渲染大纲
+   ============================ */
+function renderOutline() {
+  renderPanel('outline-government', governmentOutline);
+  renderPanel('outline-enterprise', enterpriseOutline);
+}
+
+function renderPanel(containerId, data) {
+  const container = document.getElementById(containerId);
+  if (!container) return;
+  container.innerHTML = data.map(item => {
+    const checked = isDone(item.id) ? 'checked' : '';
+    const childrenHtml = item.children.map(child => {
+      const cChecked = isDone(child.id) ? 'checked' : '';
+      const tagClass = child.required ? 'required' : 'optional';
+      const tagText = child.required ? '必写' : '可选';
+      return `
+        <div class="child-item" data-search="${child.title.toLowerCase()}">
+          <div class="child-left">
+            <span class="check-btn ${cChecked}" onclick="event.stopPropagation(); toggleDone('${child.id}')">${cChecked ? '✓' : ''}</span>
+            <span class="child-number">${child.num}</span>
+            <span class="child-title">${child.title}</span>
+          </div>
+          <div class="child-actions">
+            <span class="child-tag ${tagClass}">${tagText}</span>
+          </div>
+        </div>`;
+    }).join('');
+    const descId = 'desc-' + item.id;
+    return `
+      <div class="outline-item ${isDone(item.id) ? 'expanded' : ''}" data-search="${item.title.toLowerCase()}" id="item-${item.id}">
+        <div class="outline-header" onclick="toggleItem('${item.id}')">
+          <div class="outline-header-left">
+            <span class="check-btn ${checked}" onclick="event.stopPropagation(); toggleDone('${item.id}')">${checked ? '✓' : ''}</span>
+            <span class="outline-number">${item.num}</span>
+            <span class="outline-title-text">${item.title}</span>
+          </div>
+          <div class="outline-toggle"><span class="outline-toggle-icon">▶</span></div>
+        </div>
+        <div class="outline-children">
+          ${childrenHtml}
+          <div class="desc-panel ${isDone(item.id) ? 'show' : ''}" id="${descId}">
+            <h4>📖 编写说明</h4>
+            <p>${item.desc}</p>
+          </div>
+        </div>
+      </div>`;
+  }).join('');
+}
+
+function toggleItem(id) {
+  const el = document.getElementById('item-' + id);
+  el.classList.toggle('expanded');
+  const desc = document.getElementById('desc-' + id);
+  if (desc) desc.classList.toggle('show');
+}
+
+function expandAll() {
+  document.querySelectorAll('.outline-item').forEach(el => el.classList.add('expanded'));
+  document.querySelectorAll('.desc-panel').forEach(el => el.classList.add('show'));
+}
+function collapseAll() {
+  document.querySelectorAll('.outline-item').forEach(el => el.classList.remove('expanded'));
+  document.querySelectorAll('.desc-panel').forEach(el => el.classList.remove('show'));
+}
+function showAllDesc() { document.querySelectorAll('.desc-panel').forEach(el => el.classList.add('show')); }
+function hideAllDesc() { document.querySelectorAll('.desc-panel').forEach(el => el.classList.remove('show')); }
+
+function switchTab(type) {
+  currentTab = type;
+  document.querySelectorAll('.tab-btn').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.type === type);
+  });
+  document.getElementById('outline-government').style.display = type === 'government' ? 'block' : 'none';
+  document.getElementById('outline-enterprise').style.display = type === 'enterprise' ? 'block' : 'none';
+  updateStats();
+}
+
+function markAllDone(done) {
+  const data = currentTab === 'government' ? governmentOutline : enterpriseOutline;
+  data.forEach(item => {
+    outlineProgress[item.id] = done;
+    item.children.forEach(child => { outlineProgress[child.id] = done; });
+  });
+  renderOutline();
+  updateStats();
+  showToast(done ? '✅ 已全部标记为完成' : '⬜ 已全部标记为未完成');
+}
+
+/* ============================
+   搜索与过滤
+   ============================ */
+function filterOutline(keyword) {
+  const k = keyword.trim().toLowerCase();
+  if (!k) {
+    document.querySelectorAll('.outline-item').forEach(el => el.style.display = '');
+    document.querySelectorAll('.child-item').forEach(el => el.style.display = '');
+    return;
+  }
+  document.querySelectorAll('.outline-item').forEach(el => {
+    const match = el.dataset.search.includes(k);
+    el.style.display = match ? '' : 'none';
+  });
+  document.querySelectorAll('.child-item').forEach(el => {
+    const match = el.dataset.search.includes(k);
+    el.style.display = match ? '' : 'none';
+  });
+}
+
+/* ============================
+   统计更新
+   ============================ */
+function updateStats() {
+  const data = currentTab === 'government' ? governmentOutline : enterpriseOutline;
+  let total = 0, done = 0, required = 0;
+  data.forEach(item => {
+    total++;
+    if (item.required) required++;
+    if (isDone(item.id)) done++;
+    item.children.forEach(child => {
+      total++;
+      if (child.required) required++;
+      if (isDone(child.id)) done++;
+    });
+  });
+  document.getElementById('stat-total').textContent = total;
+  document.getElementById('stat-done').textContent = done;
+  document.getElementById('stat-required').textContent = required;
+  const pct = total > 0 ? Math.round((done / total) * 100) : 0;
+  document.getElementById('stat-progress').textContent = pct + '%';
+  document.getElementById('progress-bar').style.width = pct + '%';
+  document.getElementById('progress-text').textContent = pct + '%';
+}
+
+/* ============================
+   导出功能
+   ============================ */
+function exportExcel() {
+  showToast('📤 导出功能：请使用“投资估算”等报表模块的导出功能生成Excel文件。');
+}
+
+/* ============================
+   初始化
+   ============================ */
+loadData();
+loadProgress();
+renderOutline();
+updateStats();
+
+// 页面可见时刷新
+window.addEventListener('storage', () => { loadProgress(); renderOutline(); updateStats(); });
+</script>
+</body>
+</html>
