@@ -1,0 +1,1067 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>资产负债与偿债 - 可研报告编写工具</title>
+    <script src="https://cdn.sheetjs.com/xlsx-0.20.0/package/dist/xlsx.full.min.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: "Microsoft YaHei", "PingFang SC", sans-serif;
+            background: #f5f7fa;
+            color: #333;
+        }
+        .header {
+            height: 60px;
+            background: #1a5f7a;
+            color: #fff;
+            display: flex;
+            align-items: center;
+            padding: 0 24px;
+            position: fixed;
+            top: 0; left: 0; right: 0;
+            z-index: 100;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        .header h1 { font-size: 18px; font-weight: 500; }
+        .sidebar {
+            width: 240px;
+            background: #fff;
+            position: fixed;
+            top: 60px; left: 0; bottom: 0;
+            border-right: 1px solid #e0e0e0;
+            overflow-y: auto;
+            z-index: 99;
+        }
+        .nav-menu { list-style: none; padding: 8px 0; }
+        .nav-menu li a {
+            display: block;
+            padding: 12px 24px;
+            color: #666;
+            text-decoration: none;
+            font-size: 14px;
+            transition: all 0.3s;
+            border-left: 3px solid transparent;
+        }
+        .nav-menu li a:hover, .nav-menu li a.active {
+            color: #1a5f7a;
+            background: rgba(26,95,122,0.05);
+            border-left-color: #1a5f7a;
+        }
+        .main-content {
+            margin-left: 240px;
+            margin-top: 60px;
+            padding: 24px;
+            min-height: calc(100vh - 60px);
+        }
+        .page-title {
+            font-size: 20px;
+            color: #1a5f7a;
+            margin-bottom: 20px;
+            padding-bottom: 12px;
+            border-bottom: 2px solid #57c5b6;
+        }
+        .tabs {
+            display: flex;
+            gap: 4px;
+            margin-bottom: 20px;
+            background: #fff;
+            padding: 4px;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            width: fit-content;
+        }
+        .tab-btn {
+            padding: 10px 24px;
+            border: none;
+            background: transparent;
+            color: #666;
+            cursor: pointer;
+            border-radius: 4px;
+            font-size: 14px;
+            transition: all 0.3s;
+        }
+        .tab-btn.active {
+            background: #1a5f7a;
+            color: #fff;
+        }
+        .tab-btn:hover:not(.active) {
+            background: rgba(26,95,122,0.05);
+            color: #1a5f7a;
+        }
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+        .card {
+            background: #fff;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            padding: 24px;
+            margin-bottom: 20px;
+        }
+        .card-title {
+            font-size: 16px;
+            color: #1a5f7a;
+            margin-bottom: 16px;
+            font-weight: 600;
+        }
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 13px;
+        }
+        .data-table th {
+            background: #1a5f7a;
+            color: #fff;
+            padding: 10px 8px;
+            text-align: center;
+            font-weight: 500;
+            white-space: nowrap;
+            position: sticky;
+            top: 0;
+        }
+        .data-table td {
+            padding: 8px;
+            text-align: center;
+            border-bottom: 1px solid #e0e0e0;
+            font-family: "Consolas", monospace;
+        }
+        .data-table tr:nth-child(even) { background: #fafbfc; }
+        .data-table tr:hover { background: rgba(87,197,182,0.08); }
+        .data-table td:first-child, .data-table th:first-child {
+            text-align: left;
+            font-family: "Microsoft YaHei", "PingFang SC", sans-serif;
+            min-width: 220px;
+        }
+        .data-table .section-header {
+            background: rgba(26,95,122,0.08);
+            font-weight: 600;
+            text-align: left;
+            color: #1a5f7a;
+        }
+        .data-table .section-header td { font-family: "Microsoft YaHei", "PingFang SC", sans-serif; }
+        .data-table .total-row {
+            background: rgba(87,197,182,0.12);
+            font-weight: 600;
+        }
+        .data-table .total-row td { font-family: "Microsoft YaHei", "PingFang SC", sans-serif; }
+        .btn {
+            padding: 8px 20px;
+            border-radius: 4px;
+            border: 1px solid #e0e0e0;
+            cursor: pointer;
+            font-size: 13px;
+            transition: all 0.3s;
+            margin-right: 8px;
+            margin-bottom: 8px;
+        }
+        .btn-primary {
+            background: #1a5f7a;
+            color: #fff;
+            border-color: #1a5f7a;
+        }
+        .btn-primary:hover { background: #134a5e; }
+        .btn-default {
+            background: #fff;
+            color: #666;
+        }
+        .btn-default:hover { border-color: #1a5f7a; color: #1a5f7a; }
+        .btn-group { margin-bottom: 16px; }
+        .indicator-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 16px;
+            margin-bottom: 20px;
+        }
+        .indicator-card {
+            background: #fff;
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            text-align: center;
+        }
+        .indicator-label {
+            font-size: 13px;
+            color: #666;
+            margin-bottom: 8px;
+        }
+        .indicator-value {
+            font-size: 24px;
+            font-weight: 600;
+            color: #1a5f7a;
+            font-family: "Consolas", monospace;
+        }
+        .indicator-unit {
+            font-size: 12px;
+            color: #999;
+            margin-top: 4px;
+        }
+        .tip {
+            background: rgba(87,197,182,0.1);
+            border-left: 3px solid #57c5b6;
+            padding: 12px 16px;
+            margin-bottom: 16px;
+            font-size: 13px;
+            color: #666;
+            border-radius: 0 4px 4px 0;
+        }
+        .table-scroll {
+            overflow-x: auto;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            background: #fff;
+        }
+        .check-pass { color: #52c41a; font-weight: bold; }
+        .check-fail { color: #f5222d; font-weight: bold; }
+        .project-info {
+            display: flex;
+            gap: 24px;
+            flex-wrap: wrap;
+            margin-bottom: 16px;
+            font-size: 13px;
+            color: #666;
+        }
+        .project-info span { background: #fff; padding: 6px 12px; border-radius: 4px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
+        .project-info strong { color: #1a5f7a; }
+        @media (max-width: 768px) {
+            .sidebar { display: none; }
+            .main-content { margin-left: 0; }
+            .indicator-grid { grid-template-columns: 1fr 1fr; }
+        }
+    </style>
+</head>
+<body>
+    <header class="header">
+        <h1>📊 可研报告编写工具 — 资产负债与偿债分析</h1>
+    </header>
+    
+    <aside class="sidebar">
+        <ul class="nav-menu">
+            <li><a href="index.html">🏠 首页与参数</a></li>
+            <li><a href="outline.html">📝 可研大纲</a></li>
+            <li><a href="investment.html">💰 投资估算</a></li>
+            <li><a href="cost.html">📉 成本费用</a></li>
+            <li><a href="profit-cashflow.html">📈 利润与现金流</a></li>
+            <li><a href="balance.html" class="active">⚖️ 资产负债与偿债</a></li>
+            <li><a href="indicators.html">📋 评价指标</a></li>
+        </ul>
+    </aside>
+    
+    <main class="main-content">
+        <h2 class="page-title">模块6：资产负债与偿债分析</h2>
+        
+        <div class="tip">
+            本模块依据《建设项目经济评价方法与参数（第三版）》编制，包含资产负债表（B14）、借款还本付息计划表（B15）及投资各方现金流量表（B11）。数据自动从首页参数读取，若未设置则使用示例数据。
+        </div>
+        
+        <div class="project-info" id="projectInfo"></div>
+        
+        <div class="tabs">
+            <button class="tab-btn active" onclick="switchTab(0)">📋 资产负债表（B14）</button>
+            <button class="tab-btn" onclick="switchTab(1)">💳 借款还本付息（B15）</button>
+            <button class="tab-btn" onclick="switchTab(2)">👥 投资各方现金流（B11）</button>
+        </div>
+        
+        <!-- 资产负债表 -->
+        <div class="tab-content active" id="tab-balance">
+            <div class="indicator-grid">
+                <div class="indicator-card">
+                    <div class="indicator-label">资产负债率（运营期末）</div>
+                    <div class="indicator-value" id="ind-asset-liability">--</div>
+                    <div class="indicator-unit">%</div>
+                </div>
+                <div class="indicator-card">
+                    <div class="indicator-label">流动比率（运营期平均）</div>
+                    <div class="indicator-value" id="ind-current-ratio">--</div>
+                    <div class="indicator-unit">倍</div>
+                </div>
+                <div class="indicator-card">
+                    <div class="indicator-label">速动比率（运营期平均）</div>
+                    <div class="indicator-value" id="ind-quick-ratio">--</div>
+                    <div class="indicator-unit">倍</div>
+                </div>
+            </div>
+            
+            <div class="card">
+                <div class="card-title">资产负债表（B14）　单位：万元</div>
+                <div class="btn-group">
+                    <button class="btn btn-primary" onclick="exportTable('balanceTable', '资产负债表B14')">📤 导出Excel</button>
+                    <button class="btn btn-default" onclick="recalcAll()">🔄 重新计算</button>
+                </div>
+                <div class="table-scroll">
+                    <table class="data-table" id="balanceTable"></table>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 借款还本付息 -->
+        <div class="tab-content" id="tab-loan">
+            <div class="indicator-grid">
+                <div class="indicator-card">
+                    <div class="indicator-label">利息备付率（ICR平均）</div>
+                    <div class="indicator-value" id="ind-icr">--</div>
+                    <div class="indicator-unit">倍</div>
+                </div>
+                <div class="indicator-card">
+                    <div class="indicator-label">偿债备付率（DSCR平均）</div>
+                    <div class="indicator-value" id="ind-dscr">--</div>
+                    <div class="indicator-unit">倍</div>
+                </div>
+                <div class="indicator-card">
+                    <div class="indicator-label">借款偿还期</div>
+                    <div class="indicator-value" id="ind-payback">--</div>
+                    <div class="indicator-unit">年</div>
+                </div>
+            </div>
+            
+            <div class="card">
+                <div class="card-title">借款还本付息计划表（B15）　单位：万元</div>
+                <div class="btn-group">
+                    <button class="btn btn-primary" onclick="exportTable('loanTable', '借款还本付息计划表B15')">📤 导出Excel</button>
+                </div>
+                <div class="table-scroll">
+                    <table class="data-table" id="loanTable"></table>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 投资各方现金流量 -->
+        <div class="tab-content" id="tab-investor">
+            <div class="card">
+                <div class="card-title">投资各方现金流量表（B11）　单位：万元</div>
+                <div class="btn-group">
+                    <button class="btn btn-primary" onclick="exportTable('investorTable', '投资各方现金流量表B11')">📤 导出Excel</button>
+                </div>
+                <div class="table-scroll">
+                    <table class="data-table" id="investorTable"></table>
+                </div>
+            </div>
+        </div>
+    </main>
+    
+    <script>
+        // ============================================================
+        // 数据模型 ProjectData
+        // ============================================================
+        const STORAGE_KEY = 'feasibility_study_data';
+        
+        const defaultData = {
+            basic: {
+                projectName: '示例产业园项目',
+                projectType: '政府投资',
+                constructionPeriod: 2,
+                operationPeriod: 20,
+                benchmarkRate: 0.08,
+            },
+            investment: {
+                engineeringCost: 5000,
+                otherCost: 800,
+                basicReserve: 300,
+                priceReserve: 200,
+                constructionInterest: 0,
+                workingCapital: 500,
+            },
+            financing: {
+                capitalRatio: 0.20,
+                loanAmount: 0,
+                loanRate: 0.05,
+                loanTerm: 10,
+                repaymentMethod: 'equal_payment',
+            },
+            revenue: {
+                annualRevenue: 3000,
+                loadRates: [],
+                subsidyIncome: 0,
+                vatRate: 0.13,
+                surchargeRate: 0.12,
+                incomeTaxRate: 0.25,
+            },
+            cost: {
+                rawMaterial: 800,
+                fuel: 200,
+                salary: 300,
+                repair: 150,
+                other: 100,
+                depreciationMethod: 'straight',
+                depreciationYears: 20,
+                residualRate: 0.05,
+                amortization: 50,
+            }
+        };
+        
+        function loadData() {
+            try {
+                const saved = localStorage.getItem(STORAGE_KEY);
+                if (saved) {
+                    const parsed = JSON.parse(saved);
+                    return deepMerge(JSON.parse(JSON.stringify(defaultData)), parsed);
+                }
+            } catch(e) { console.warn('localStorage读取失败，使用默认数据', e); }
+            return JSON.parse(JSON.stringify(defaultData));
+        }
+        
+        function deepMerge(target, source) {
+            for (const key in source) {
+                if (source[key] !== null && typeof source[key] === 'object' && !Array.isArray(source[key])) {
+                    if (!target[key]) target[key] = {};
+                    deepMerge(target[key], source[key]);
+                } else {
+                    target[key] = source[key];
+                }
+            }
+            return target;
+        }
+        
+        let projectData = loadData();
+        
+        // ============================================================
+        // 核心计算函数 Calculator（严格遵循《方法与参数（第三版）》）
+        // ============================================================
+        const Calculator = {
+            // 直线法折旧：年折旧额 = 固定资产原值 × (1 - 残值率) / 折旧年限
+            calculateDepreciation: (originalValue, residualRate, years) => {
+                if (!years || years <= 0) return 0;
+                return originalValue * (1 - residualRate) / years;
+            },
+            
+            // 等额本息年还款额：A = P × [i(1+i)^n] / [(1+i)^n - 1]
+            calculateEqualPayment: (principal, rate, years) => {
+                if (years <= 0) return principal;
+                if (rate === 0) return principal / years;
+                return principal * (rate * Math.pow(1 + rate, years)) / 
+                       (Math.pow(1 + rate, years) - 1);
+            },
+            
+            // 建设期利息（逐年计算）
+            // 各年应计利息 = (年初借款本息累计 + 本年借款额/2) × 年利率
+            calculateConstructionInterest: (totalLoan, rate, constructionYears) => {
+                const annualLoan = totalLoan / constructionYears;
+                let accumulated = 0;
+                const yearly = [];
+                for (let i = 0; i < constructionYears; i++) {
+                    const interest = (accumulated + annualLoan / 2) * rate;
+                    yearly.push({
+                        year: i + 1,
+                        newBorrowing: annualLoan,
+                        interest: interest,
+                        accumulated: accumulated,
+                        endingBalance: accumulated + annualLoan + interest
+                    });
+                    accumulated = accumulated + annualLoan + interest;
+                }
+                return { totalInterest: accumulated - totalLoan, yearly, finalAccumulated: accumulated };
+            },
+            
+            // NPV
+            calculateNPV: (cashFlows, discountRate) => {
+                let npv = 0;
+                for (let t = 0; t < cashFlows.length; t++) {
+                    npv += cashFlows[t] / Math.pow(1 + discountRate, t);
+                }
+                return npv;
+            },
+            
+            // IRR（牛顿迭代法）
+            calculateIRR: (cashFlows, guess = 0.1) => {
+                const maxIter = 100;
+                const epsilon = 1e-8;
+                let rate = guess;
+                for (let i = 0; i < maxIter; i++) {
+                    let npv = 0, dNpv = 0;
+                    for (let t = 0; t < cashFlows.length; t++) {
+                        const factor = Math.pow(1 + rate, t);
+                        npv += cashFlows[t] / factor;
+                        dNpv -= t * cashFlows[t] / (factor * (1 + rate));
+                    }
+                    if (Math.abs(dNpv) < epsilon) return null;
+                    const newRate = rate - npv / dNpv;
+                    if (Math.abs(newRate - rate) < epsilon) return newRate;
+                    rate = newRate;
+                }
+                return rate;
+            },
+            
+            // 投资回收期
+            calculatePaybackPeriod: (cashFlows) => {
+                let cumulative = 0;
+                for (let t = 0; t < cashFlows.length; t++) {
+                    cumulative += cashFlows[t];
+                    if (cumulative >= 0) {
+                        return t + Math.abs(cumulative - cashFlows[t]) / cashFlows[t];
+                    }
+                }
+                return null;
+            }
+        };
+        
+        // ============================================================
+        // 全局计算状态
+        // ============================================================
+        let computedData = null;
+        
+        /**
+         * 核心计算引擎：根据项目数据计算全部中间结果
+         */
+        function computeAll() {
+            const d = projectData;
+            const C = constructionYears = d.basic.constructionPeriod;
+            const O = operationYears = d.basic.operationPeriod;
+            const N = totalYears = C + O;
+            const loanRate = d.financing.loanRate;
+            const loanTerm = d.financing.loanTerm;
+            const repaymentMethod = d.financing.repaymentMethod;
+            
+            // ---- 1. 基础投资参数 ----
+            const constructionInvestment = d.investment.engineeringCost + d.investment.otherCost 
+                + d.investment.basicReserve + d.investment.priceReserve;
+            const workingCapital = d.investment.workingCapital;
+            
+            // 建设期利息（先按借款总额估算，迭代一次更精确）
+            let tempLoan = constructionInvestment + workingCapital;
+            const capitalRatio = d.financing.capitalRatio;
+            let loanAmount = tempLoan * (1 - capitalRatio);
+            
+            // 计算建设期利息
+            const ciResult = Calculator.calculateConstructionInterest(loanAmount, loanRate, C);
+            const constructionInterest = ciResult.totalInterest;
+            
+            // 更新总投资
+            const totalInvestment = constructionInvestment + constructionInterest + workingCapital;
+            const capital = totalInvestment * capitalRatio;
+            loanAmount = totalInvestment - capital;
+            
+            // 重新精确计算建设期利息（迭代）
+            const ciResult2 = Calculator.calculateConstructionInterest(loanAmount, loanRate, C);
+            const finalConstructionInterest = ciResult2.totalInterest;
+            const finalTotalInvestment = constructionInvestment + finalConstructionInterest + workingCapital;
+            const finalCapital = finalTotalInvestment * capitalRatio;
+            const finalLoan = finalTotalInvestment - finalCapital;
+            const finalCi = Calculator.calculateConstructionInterest(finalLoan, loanRate, C);
+            
+            // 固定资产原值 = 形成固定资产的建设投资 + 建设期利息（简化假设）
+            const fixedAssetValue = constructionInvestment + finalCi.totalInterest;
+            
+            // 年折旧（直线法）
+            const annualDepreciation = Calculator.calculateDepreciation(
+                fixedAssetValue, d.cost.residualRate, d.cost.depreciationYears
+            );
+            const annualAmortization = d.cost.amortization;
+            
+            // 经营成本
+            const annualOperatingCost = d.cost.rawMaterial + d.cost.fuel + d.cost.salary 
+                + d.cost.repair + d.cost.other;
+            
+            // 负荷率
+            let loadRates = d.revenue.loadRates || [];
+            if (loadRates.length === 0) {
+                for (let i = 0; i < C; i++) loadRates.push(0);
+                loadRates.push(0.6, 0.8);
+                while (loadRates.length < N) loadRates.push(1.0);
+            }
+            while (loadRates.length < N) loadRates.push(1.0);
+            
+            // ---- 2. 借款还本付息计划 ----
+            const loanSchedule = [];
+            const annualBorrow = finalLoan / C;
+            let loanBalance = 0;
+            
+            // 建设期
+            for (let i = 0; i < C; i++) {
+                const interest = (loanBalance + annualBorrow / 2) * loanRate;
+                loanSchedule.push({
+                    year: i + 1,
+                    phase: '建设期',
+                    beginningBalance: loanBalance,
+                    newBorrowing: annualBorrow,
+                    interest: interest,
+                    principalRepayment: 0,
+                    totalPayment: interest,
+                    endingBalance: loanBalance + annualBorrow + interest
+                });
+                loanBalance += annualBorrow + interest;
+            }
+            
+            // 运营期还款
+            const repayYears = Math.min(loanTerm, O);
+            const annualPayment = repaymentMethod === 'equal_payment' 
+                ? Calculator.calculateEqualPayment(loanBalance, loanRate, repayYears) 
+                : 0;
+            
+            const principalRepayments = [];
+            const interestPayments = [];
+            
+            for (let i = 0; i < O; i++) {
+                const year = C + i + 1;
+                let principal = 0, interest = 0;
+                if (i < repayYears && loanBalance > 0.01) {
+                    interest = loanBalance * loanRate;
+                    if (repaymentMethod === 'equal_payment') {
+                        principal = annualPayment - interest;
+                    } else {
+                        principal = loanBalance / (repayYears - i);
+                    }
+                    if (principal > loanBalance) principal = loanBalance;
+                }
+                principalRepayments.push(principal);
+                interestPayments.push(interest);
+                loanSchedule.push({
+                    year: year,
+                    phase: '运营期',
+                    beginningBalance: loanBalance,
+                    newBorrowing: 0,
+                    interest: interest,
+                    principalRepayment: principal,
+                    totalPayment: principal + interest,
+                    endingBalance: Math.max(0, loanBalance - principal)
+                });
+                loanBalance = Math.max(0, loanBalance - principal);
+            }
+            
+            // ---- 3. 利润计算（运营期） ----
+            const revenues = [];
+            const profits = [];
+            const netProfits = [];
+            const taxes = [];
+            const ebits = []; // 息税前利润
+            const ebitdas = []; // 息税折旧摊销前利润
+            
+            for (let i = 0; i < O; i++) {
+                const rate = loadRates[C + i];
+                const revenue = d.revenue.annualRevenue * rate;
+                revenues.push(revenue);
+                
+                const vat = revenue / (1 + d.revenue.vatRate) * d.revenue.vatRate;
+                const surcharge = vat * d.revenue.surchargeRate;
+                const interest = interestPayments[i] || 0;
+                const depreciation = (i < d.cost.depreciationYears) ? annualDepreciation : 0;
+                const amortization = annualAmortization;
+                const operatingCostThisYear = annualOperatingCost * rate;
+                const totalCost = operatingCostThisYear + depreciation + amortization + interest;
+                
+                const profit = revenue - totalCost - surcharge + d.revenue.subsidyIncome;
+                profits.push(profit);
+                ebits.push(profit + interest);
+                ebitdas.push(profit + interest + depreciation + amortization);
+                
+                const tax = profit > 0 ? profit * d.revenue.incomeTaxRate : 0;
+                taxes.push(tax);
+                netProfits.push(profit - tax);
+            }
+            
+            // ---- 4. 资产负债表计算 ----
+            // 策略：负债+权益先确定，资产 = 负债+权益，流动资产由差额反算
+            const balanceSheet = [];
+            let accSurplusReserve = 0;
+            let accUndistributedProfit = 0;
+            let accDepreciation = 0;
+            
+            for (let i = 0; i < N; i++) {
+                const isConstruction = i < C;
+                const opIdx = i - C;
+                const year = i + 1;
+                
+                let fixedAssetsNet = 0, intangibleAssetsNet = 0;
+                let currentLiabilities = 0, longTermLoan = 0;
+                let paidInCapital = 0, surplusReserve = 0, undistributedProfit = 0;
+                
+                if (isConstruction) {
+                    // 建设期
+                    paidInCapital = finalCapital * (i + 1) / C;
+                    longTermLoan = loanSchedule[i].endingBalance;
+                    // 固定资产未形成，计入在建工程；这里简化：固定资产净值为0，在建工程通过流动资产差额体现
+                    fixedAssetsNet = 0;
+                    intangibleAssetsNet = 0;
+                } else {
+                    // 运营期
+                    accDepreciation += annualDepreciation;
+                    const depToDate = Math.min(accDepreciation, fixedAssetValue * (1 - d.cost.residualRate));
+                    fixedAssetsNet = fixedAssetValue - depToDate;
+                    intangibleAssetsNet = Math.max(0, 500 - annualAmortization * opIdx);
+                    
+                    paidInCapital = finalCapital;
+                    longTermLoan = loanSchedule[C + opIdx].endingBalance;
+                    
+                    const netProfit = netProfits[opIdx];
+                    const sr = Math.max(0, netProfit * 0.1); // 盈余公积金10%
+                    accSurplusReserve += sr;
+                    surplusReserve = accSurplusReserve;
+                    
+                    const distributable = netProfit - sr;
+                    const dividend = Math.max(0, distributable * 0.5); // 分配50%
+                    accUndistributedProfit += (distributable - dividend);
+                    undistributedProfit = accUndistributedProfit;
+                    
+                    // 流动负债（简化：应付账款按年经营成本8%）
+                    currentLiabilities = annualOperatingCost * loadRates[i] * 0.08;
+                }
+                
+                const totalEquity = paidInCapital + surplusReserve + undistributedProfit;
+                const totalLiabilities = currentLiabilities + longTermLoan;
+                const totalAssets = totalLiabilities + totalEquity;
+                
+                // 流动资产 = 总资产 - 固定资产净值 - 无形资产净值
+                const currentAssets = totalAssets - fixedAssetsNet - intangibleAssetsNet;
+                
+                // 流动资产明细（简化假设）
+                const receivables = isConstruction ? 0 : revenues[opIdx] * 0.1; // 应收账款10%
+                const inventory = isConstruction ? 0 : annualOperatingCost * loadRates[i] * 0.12; // 存货12%
+                const cashAndDeposit = Math.max(0, currentAssets - receivables - inventory - (isConstruction ? 0 : workingCapital));
+                
+                balanceSheet.push({
+                    year,
+                    isConstruction,
+                    currentAssets,
+                    receivables,
+                    inventory,
+                    cashAndDeposit,
+                    workingCapital: isConstruction ? 0 : workingCapital,
+                    fixedAssetsNet,
+                    intangibleAssetsNet,
+                    constructionInProgress: isConstruction ? totalAssets : 0,
+                    totalAssets,
+                    currentLiabilities,
+                    longTermLoan,
+                    totalLiabilities,
+                    paidInCapital,
+                    surplusReserve,
+                    undistributedProfit,
+                    totalEquity,
+                    check: totalAssets - totalLiabilities - totalEquity
+                });
+            }
+            
+            // ---- 5. 投资各方现金流量表 ----
+            // 简化：假设单一投资方（项目公司股东），现金流 = 股利分配 - 资本金投入
+            const investorFlows = [];
+            let cumInvestor = 0;
+            for (let i = 0; i < N; i++) {
+                const isConstruction = i < C;
+                const opIdx = i - C;
+                let inflow = 0, outflow = 0;
+                
+                if (isConstruction) {
+                    outflow = finalCapital / C;
+                } else {
+                    const netProfit = netProfits[opIdx];
+                    const sr = Math.max(0, netProfit * 0.1);
+                    const distributable = netProfit - sr;
+                    const dividend = Math.max(0, distributable * 0.5);
+                    inflow = dividend;
+                }
+                
+                const netFlow = inflow - outflow;
+                cumInvestor += netFlow;
+                investorFlows.push({
+                    year: i + 1,
+                    profitDistribution: inflow,
+                    assetDisposal: 0,
+                    rentalIncome: 0,
+                    otherInflow: 0,
+                    totalInflow: inflow,
+                    capitalContribution: outflow,
+                    rentalExpense: 0,
+                    otherOutflow: 0,
+                    totalOutflow: outflow,
+                    netFlow,
+                    cumulativeFlow: cumInvestor
+                });
+            }
+            
+            computedData = {
+                projectName: d.basic.projectName,
+                N, C, O,
+                totalInvestment: finalTotalInvestment,
+                capital: finalCapital,
+                loanAmount: finalLoan,
+                fixedAssetValue,
+                annualDepreciation,
+                annualAmortization,
+                annualOperatingCost,
+                loadRates,
+                loanSchedule,
+                ciYearly: finalCi.yearly,
+                revenues,
+                profits,
+                netProfits,
+                taxes,
+                ebits,
+                ebitdas,
+                principalRepayments,
+                interestPayments,
+                balanceSheet,
+                investorFlows
+            };
+            
+            return computedData;
+        }
+        
+        // ============================================================
+        // 表格渲染
+        // ============================================================
+        function formatNum(n) {
+            if (n === undefined || n === null) return '--';
+            if (typeof n === 'string') return n;
+            if (Math.abs(n) < 0.005 && n !== 0) return '0.00';
+            return n.toLocaleString('zh-CN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        }
+        
+        function renderBalanceTable() {
+            const D = computedData || computeAll();
+            const tbl = document.getElementById('balanceTable');
+            const yrs = D.N;
+            
+            let h = '<thead><tr><th>项目</th>';
+            for (let i = 1; i <= yrs; i++) h += '<th>第' + i + '年</th>';
+            h += '</tr></thead><tbody>';
+            
+            const bs = D.balanceSheet;
+            
+            // 资产
+            h += '<tr class="section-header"><td><b>1　资产</b></td>' + '<td colspan="' + yrs + '"></td></tr>';
+            h += '<tr><td>　1.1　流动资产总额</td>' + bs.map(r => '<td>' + formatNum(r.currentAssets) + '</td>').join('') + '</tr>';
+            h += '<tr><td>　　　其中：货币资金</td>' + bs.map(r => '<td>' + formatNum(r.cashAndDeposit) + '</td>').join('') + '</tr>';
+            h += '<tr><td>　　　　　　应收账款</td>' + bs.map(r => '<td>' + formatNum(r.receivables) + '</td>').join('') + '</tr>';
+            h += '<tr><td>　　　　　　存　　货</td>' + bs.map(r => '<td>' + formatNum(r.inventory) + '</td>').join('') + '</tr>';
+            h += '<tr><td>　　　　　　流动资金</td>' + bs.map(r => '<td>' + formatNum(r.workingCapital) + '</td>').join('') + '</tr>';
+            h += '<tr><td>　1.2　在建工程</td>' + bs.map(r => '<td>' + formatNum(r.constructionInProgress) + '</td>').join('') + '</tr>';
+            h += '<tr><td>　1.3　固定资产净值</td>' + bs.map(r => '<td>' + formatNum(r.fixedAssetsNet) + '</td>').join('') + '</tr>';
+            h += '<tr><td>　1.4　无形资产及其他资产净值</td>' + bs.map(r => '<td>' + formatNum(r.intangibleAssetsNet) + '</td>').join('') + '</tr>';
+            h += '<tr class="total-row"><td><b>　资产合计</b></td>' + bs.map(r => '<td><b>' + formatNum(r.totalAssets) + '</b></td>').join('') + '</tr>';
+            
+            // 负债
+            h += '<tr class="section-header"><td><b>2　负债</b></td>' + '<td colspan="' + yrs + '"></td></tr>';
+            h += '<tr><td>　2.1　流动负债总额</td>' + bs.map(r => '<td>' + formatNum(r.currentLiabilities) + '</td>').join('') + '</tr>';
+            h += '<tr><td>　2.2　长期借款</td>' + bs.map(r => '<td>' + formatNum(r.longTermLoan) + '</td>').join('') + '</tr>';
+            h += '<tr class="total-row"><td><b>　负债合计</b></td>' + bs.map(r => '<td><b>' + formatNum(r.totalLiabilities) + '</b></td>').join('') + '</tr>';
+            
+            // 所有者权益
+            h += '<tr class="section-header"><td><b>3　所有者权益</b></td>' + '<td colspan="' + yrs + '"></td></tr>';
+            h += '<tr><td>　3.1　资本金</td>' + bs.map(r => '<td>' + formatNum(r.paidInCapital) + '</td>').join('') + '</tr>';
+            h += '<tr><td>　3.2　累计盈余公积金</td>' + bs.map(r => '<td>' + formatNum(r.surplusReserve) + '</td>').join('') + '</tr>';
+            h += '<tr><td>　3.3　累计未分配利润</td>' + bs.map(r => '<td>' + formatNum(r.undistributedProfit) + '</td>').join('') + '</tr>';
+            h += '<tr class="total-row"><td><b>　所有者权益合计</b></td>' + bs.map(r => '<td><b>' + formatNum(r.totalEquity) + '</b></td>').join('') + '</tr>';
+            
+            // 校验
+            h += '<tr style="background:#fffbe6"><td>　平衡校验（误差）</td>' + bs.map(r => '<td class="' + (Math.abs(r.check) < 1 ? 'check-pass' : 'check-fail') + '">' + (Math.abs(r.check) < 1 ? '✓ 平衡' : formatNum(r.check)) + '</td>').join('') + '</tr>';
+            
+            // 财务比率（仅运营期）
+            h += '<tr class="section-header"><td colspan="' + (yrs+1) + '"><b>财务比率（运营期）</b></td></tr>';
+            
+            // 资产负债率
+            h += '<tr><td>　资产负债率(%)</td>';
+            const alRatios = [];
+            for (let i = 0; i < yrs; i++) {
+                const r = bs[i];
+                const val = r.totalAssets > 0 ? (r.totalLiabilities / r.totalAssets * 100) : 0;
+                if (!r.isConstruction) alRatios.push(val);
+                h += '<td>' + val.toFixed(2) + '%</td>';
+            }
+            h += '</tr>';
+            
+            // 流动比率
+            h += '<tr><td>　流动比率(倍)</td>';
+            const crRatios = [];
+            for (let i = 0; i < yrs; i++) {
+                const r = bs[i];
+                const val = r.currentLiabilities > 0 ? (r.currentAssets / r.currentLiabilities) : 0;
+                if (!r.isConstruction) crRatios.push(val);
+                h += '<td>' + val.toFixed(2) + '</td>';
+            }
+            h += '</tr>';
+            
+            // 速动比率
+            h += '<tr><td>　速动比率(倍)</td>';
+            const qrRatios = [];
+            for (let i = 0; i < yrs; i++) {
+                const r = bs[i];
+                const quick = r.currentAssets - r.inventory;
+                const val = r.currentLiabilities > 0 ? (quick / r.currentLiabilities) : 0;
+                if (!r.isConstruction) qrRatios.push(val);
+                h += '<td>' + val.toFixed(2) + '</td>';
+            }
+            h += '</tr>';
+            
+            h += '</tbody>';
+            tbl.innerHTML = h;
+            
+            // 指标卡片
+            const lastOp = bs[bs.length - 1];
+            document.getElementById('ind-asset-liability').textContent = 
+                lastOp.totalAssets > 0 ? (lastOp.totalLiabilities / lastOp.totalAssets * 100).toFixed(2) : '--';
+            document.getElementById('ind-current-ratio').textContent = 
+                crRatios.length > 0 ? (crRatios.reduce((a,b)=>a+b,0) / crRatios.length).toFixed(2) : '--';
+            document.getElementById('ind-quick-ratio').textContent = 
+                qrRatios.length > 0 ? (qrRatios.reduce((a,b)=>a+b,0) / qrRatios.length).toFixed(2) : '--';
+        }
+        
+        function renderLoanTable() {
+            const D = computedData || computeAll();
+            const tbl = document.getElementById('loanTable');
+            const yrs = D.N;
+            
+            let h = '<thead><tr><th>项目</th>';
+            for (let i = 1; i <= yrs; i++) h += '<th>第' + i + '年</th>';
+            h += '</tr></thead><tbody>';
+            
+            const rows = [
+                { label: '一、年初借款余额', key: 'beginningBalance', bold: true },
+                { label: '　　本年借款', key: 'newBorrowing' },
+                { label: '　　本年应计利息', key: 'interest' },
+                { label: '二、本年还本', key: 'principalRepayment' },
+                { label: '三、本年付息', key: 'interest', dup: true },
+                { label: '四、本年本息合计', key: 'totalPayment', bold: true },
+                { label: '五、年末借款余额', key: 'endingBalance', bold: true },
+            ];
+            
+            for (const row of rows) {
+                h += '<tr class="' + (row.bold ? 'total-row' : '') + '"><td>' + row.label + '</td>';
+                for (let i = 0; i < yrs; i++) {
+                    const v = D.loanSchedule[i][row.key];
+                    h += '<td>' + formatNum(v) + '</td>';
+                }
+                h += '</tr>';
+            }
+            
+            // 偿债能力指标
+            h += '<tr class="section-header"><td colspan="' + (yrs+1) + '"><b>偿债能力指标（运营期）</b></td></tr>';
+            
+            // 利息备付率 ICR = EBIT / 当期利息
+            h += '<tr><td>　利息备付率(ICR)</td>';
+            const icrs = [];
+            for (let i = 0; i < yrs; i++) {
+                if (i < D.C) { h += '<td>—</td>'; continue; }
+                const idx = i - D.C;
+                const interest = D.interestPayments[idx];
+                const ebit = D.ebits[idx];
+                const icr = interest > 0.01 ? (ebit / interest) : 999;
+                icrs.push(icr);
+                h += '<td>' + (icr === 999 ? '—' : icr.toFixed(2)) + '</td>';
+            }
+            h += '</tr>';
+            
+            // 偿债备付率 DSCR = (EBITDA - 所得税) / 当期还本付息
+            h += '<tr><td>　偿债备付率(DSCR)</td>';
+            const dscrs = [];
+            for (let i = 0; i < yrs; i++) {
+                if (i < D.C) { h += '<td>—</td>'; continue; }
+                const idx = i - D.C;
+                const debtService = D.principalRepayments[idx] + D.interestPayments[idx];
+                const ebitda = D.ebitdas[idx];
+                const tax = D.taxes[idx];
+                const dscr = debtService > 0.01 ? ((ebitda - tax) / debtService) : 999;
+                dscrs.push(dscr);
+                h += '<td>' + (dscr === 999 ? '—' : dscr.toFixed(2)) + '</td>';
+            }
+            h += '</tr>';
+            
+            h += '</tbody>';
+            tbl.innerHTML = h;
+            
+            // 指标卡片
+            const validIcrs = icrs.filter(v => v !== 999);
+            const validDscrs = dscrs.filter(v => v !== 999);
+            document.getElementById('ind-icr').textContent = validIcrs.length > 0 
+                ? (validIcrs.reduce((a,b)=>a+b,0) / validIcrs.length).toFixed(2) : '--';
+            document.getElementById('ind-dscr').textContent = validDscrs.length > 0 
+                ? (validDscrs.reduce((a,b)=>a+b,0) / validDscrs.length).toFixed(2) : '--';
+            
+            // 借款偿还期
+            let payback = null;
+            for (let i = D.C; i < D.N; i++) {
+                if (D.loanSchedule[i].endingBalance <= 0.01) {
+                    payback = i - D.C + 1;
+                    break;
+                }
+            }
+            document.getElementById('ind-payback').textContent = payback !== null ? payback : 
+                (D.loanSchedule[D.N-1].endingBalance <= 0.01 ? D.O : '>20');
+        }
+        
+        function renderInvestorTable() {
+            const D = computedData || computeAll();
+            const tbl = document.getElementById('investorTable');
+            const yrs = D.N;
+            
+            let h = '<thead><tr><th>项目</th>';
+            for (let i = 1; i <= yrs; i++) h += '<th>第' + i + '年</th>';
+            h += '</tr></thead><tbody>';
+            
+            const f = D.investorFlows;
+            
+            h += '<tr class="section-header"><td><b>现金流入</b></td>' + '<td colspan="' + yrs + '"></td></tr>';
+            h += '<tr><td>　实分利润</td>' + f.map(x => '<td>' + formatNum(x.profitDistribution) + '</td>').join('') + '</tr>';
+            h += '<tr><td>　资产处置收益分配</td>' + f.map(x => '<td>' + formatNum(x.assetDisposal) + '</td>').join('') + '</tr>';
+            h += '<tr><td>　租赁费收入</td>' + f.map(x => '<td>' + formatNum(x.rentalIncome) + '</td>').join('') + '</tr>';
+            h += '<tr><td>　其他现金流入</td>' + f.map(x => '<td>' + formatNum(x.otherInflow) + '</td>').join('') + '</tr>';
+            h += '<tr class="total-row"><td><b>　现金流入合计</b></td>' + f.map(x => '<td><b>' + formatNum(x.totalInflow) + '</b></td>').join('') + '</tr>';
+            
+            h += '<tr class="section-header"><td><b>现金流出</b></td>' + '<td colspan="' + yrs + '"></td></tr>';
+            h += '<tr><td>　实缴资本</td>' + f.map(x => '<td>' + formatNum(x.capitalContribution) + '</td>').join('') + '</tr>';
+            h += '<tr><td>　租赁资产支出</td>' + f.map(x => '<td>' + formatNum(x.rentalExpense) + '</td>').join('') + '</tr>';
+            h += '<tr><td>　其他现金流出</td>' + f.map(x => '<td>' + formatNum(x.otherOutflow) + '</td>').join('') + '</tr>';
+            h += '<tr class="total-row"><td><b>　现金流出合计</b></td>' + f.map(x => '<td><b>' + formatNum(x.totalOutflow) + '</b></td>').join('') + '</tr>';
+            
+            h += '<tr class="total-row"><td><b>　净现金流量</b></td>' + f.map(x => '<td><b>' + formatNum(x.netFlow) + '</b></td>').join('') + '</tr>';
+            h += '<tr><td>　累计净现金流量</td>' + f.map(x => '<td>' + formatNum(x.cumulativeFlow) + '</td>').join('') + '</tr>';
+            
+            h += '</tbody>';
+            tbl.innerHTML = h;
+        }
+        
+        // ============================================================
+        // 交互与工具函数
+        // ============================================================
+        function switchTab(index) {
+            document.querySelectorAll('.tab-btn').forEach((btn, i) => btn.classList.toggle('active', i === index));
+            document.querySelectorAll('.tab-content').forEach((content, i) => content.classList.toggle('active', i === index));
+            if (index === 0) renderBalanceTable();
+            else if (index === 1) renderLoanTable();
+            else renderInvestorTable();
+        }
+        
+        function recalcAll() {
+            computedData = null;
+            computeAll();
+            const activeIndex = Array.from(document.querySelectorAll('.tab-btn')).findIndex(b => b.classList.contains('active'));
+            switchTab(activeIndex);
+            updateProjectInfo();
+        }
+        
+        function updateProjectInfo() {
+            const d = projectData;
+            const cd = computedData || computeAll();
+            const el = document.getElementById('projectInfo');
+            el.innerHTML = `
+                <span><strong>项目名称：</strong>${cd.projectName || '未命名'}</span>
+                <span><strong>建设期/运营期：</strong>${d.basic.constructionPeriod}年 / ${d.basic.operationPeriod}年</span>
+                <span><strong>总投资：</strong>${formatNum(cd.totalInvestment)}万元</span>
+                <span><strong>资本金：</strong>${formatNum(cd.capital)}万元（${(d.financing.capitalRatio*100).toFixed(0)}%）</span>
+                <span><strong>借款：</strong>${formatNum(cd.loanAmount)}万元</span>
+                <span><strong>还款方式：</strong>${d.financing.repaymentMethod === 'equal_payment' ? '等额本息' : '等额本金'}</span>
+            `;
+        }
+        
+        function exportTable(tableId, filename) {
+            const table = document.getElementById(tableId);
+            if (!table) { alert('表格未找到'); return; }
+            try {
+                const wb = XLSX.utils.book_new();
+                const ws = XLSX.utils.table_to_sheet(table);
+                XLSX.utils.book_append_sheet(wb, ws, 'Sheet1');
+                XLSX.writeFile(wb, filename + '.xlsx');
+            } catch (e) {
+                alert('导出失败：' + e.message);
+            }
+        }
+        
+        // ============================================================
+        // 初始化
+        // ============================================================
+        window.addEventListener('DOMContentLoaded', () => {
+            computeAll();
+            updateProjectInfo();
+            renderBalanceTable();
+        });
+    </script>
+</body>
+</html>
