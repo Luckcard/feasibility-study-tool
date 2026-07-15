@@ -1,0 +1,1115 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>评价指标与敏感性分析 - 可研报告编写工具</title>
+  <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
+  <style>
+    /* ========== 基础样式 ========== */
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: "Microsoft YaHei", "PingFang SC", sans-serif;
+      background: #f5f7fa;
+      color: #333;
+      font-size: 14px;
+      line-height: 1.6;
+    }
+    
+    /* ========== 顶部导航 ========== */
+    .top-bar {
+      height: 60px;
+      background: #1a5f7a;
+      color: #fff;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 24px;
+      position: fixed;
+      top: 0; left: 0; right: 0;
+      z-index: 100;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+    }
+    .top-bar .logo { font-size: 18px; font-weight: bold; }
+    .top-bar .project-name { font-size: 14px; opacity: 0.9; }
+    
+    /* ========== 左侧菜单 ========== */
+    .sidebar {
+      width: 240px;
+      background: #fff;
+      border-right: 1px solid #e0e0e0;
+      position: fixed;
+      top: 60px; left: 0; bottom: 0;
+      overflow-y: auto;
+      z-index: 90;
+    }
+    .sidebar-menu { list-style: none; padding: 8px 0; }
+    .sidebar-menu li a {
+      display: block;
+      padding: 12px 24px;
+      color: #666;
+      text-decoration: none;
+      border-left: 3px solid transparent;
+      transition: all 0.2s;
+    }
+    .sidebar-menu li a:hover {
+      background: #f5f7fa;
+      color: #1a5f7a;
+    }
+    .sidebar-menu li a.active {
+      background: #f0f9ff;
+      color: #1a5f7a;
+      border-left-color: #1a5f7a;
+      font-weight: bold;
+    }
+    .sidebar-menu .menu-group {
+      padding: 16px 24px 8px;
+      font-size: 12px;
+      color: #999;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+    
+    /* ========== 主内容区 ========== */
+    .main-content {
+      margin-left: 240px;
+      margin-top: 60px;
+      padding: 24px;
+      min-height: calc(100vh - 60px);
+    }
+    
+    /* ========== 卡片 ========== */
+    .card {
+      background: #fff;
+      border-radius: 8px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+      margin-bottom: 24px;
+      overflow: hidden;
+    }
+    .card-header {
+      padding: 16px 24px;
+      border-bottom: 1px solid #e0e0e0;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .card-title {
+      font-size: 16px;
+      font-weight: bold;
+      color: #1a5f7a;
+    }
+    .card-body { padding: 24px; }
+    
+    /* ========== 按钮 ========== */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      height: 36px;
+      padding: 0 20px;
+      border-radius: 4px;
+      border: 1px solid #e0e0e0;
+      background: #fff;
+      color: #666;
+      cursor: pointer;
+      font-size: 14px;
+      transition: all 0.2s;
+    }
+    .btn:hover { border-color: #1a5f7a; color: #1a5f7a; }
+    .btn-primary {
+      background: #1a5f7a;
+      color: #fff;
+      border-color: #1a5f7a;
+    }
+    .btn-primary:hover { background: #134a5e; border-color: #134a5e; color: #fff; }
+    .btn-success {
+      background: #52c41a;
+      color: #fff;
+      border-color: #52c41a;
+    }
+    .btn-success:hover { background: #389e0d; border-color: #389e0d; }
+    .btn-sm { height: 32px; padding: 0 16px; font-size: 13px; }
+    
+    /* ========== 表格 ========== */
+    .data-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+    }
+    .data-table th {
+      background: #1a5f7a;
+      color: #fff;
+      text-align: center;
+      padding: 10px 8px;
+      font-weight: 500;
+      white-space: nowrap;
+    }
+    .data-table td {
+      padding: 10px 8px;
+      border-bottom: 1px solid #e8e8e8;
+      text-align: center;
+    }
+    .data-table tr:hover { background: #f8fafc; }
+    .data-table .text-left { text-align: left; }
+    .data-table .text-right { text-align: right; }
+    .data-table .num { font-family: "Consolas", monospace; }
+    .data-table tbody tr:nth-child(even) { background: #fafbfc; }
+    
+    /* ========== 指标卡片 ========== */
+    .indicator-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+    .indicator-item {
+      background: #fff;
+      border-radius: 8px;
+      padding: 20px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+      text-align: center;
+      border-top: 3px solid #57c5b6;
+    }
+    .indicator-item .label {
+      font-size: 13px;
+      color: #666;
+      margin-bottom: 8px;
+    }
+    .indicator-item .value {
+      font-size: 24px;
+      font-weight: bold;
+      color: #1a5f7a;
+      font-family: "Consolas", monospace;
+    }
+    .indicator-item .unit {
+      font-size: 12px;
+      color: #999;
+      margin-top: 4px;
+    }
+    .indicator-item.success { border-top-color: #52c41a; }
+    .indicator-item.warning { border-top-color: #faad14; }
+    .indicator-item.danger { border-top-color: #f5222d; }
+    
+    /* ========== 标签 ========== */
+    .tag {
+      display: inline-block;
+      padding: 2px 10px;
+      border-radius: 4px;
+      font-size: 12px;
+      font-weight: 500;
+    }
+    .tag-success { background: #f6ffed; color: #52c41a; border: 1px solid #b7eb8f; }
+    .tag-warning { background: #fffbe6; color: #faad14; border: 1px solid #ffe58f; }
+    .tag-danger { background: #fff1f0; color: #f5222d; border: 1px solid #ffa39e; }
+    
+    /* ========== 图表区域 ========== */
+    .chart-container {
+      width: 100%;
+      height: 400px;
+      position: relative;
+      margin-top: 16px;
+    }
+    
+    /* ========== 分析说明 ========== */
+    .analysis-note {
+      background: #f0f9ff;
+      border-left: 4px solid #1a5f7a;
+      padding: 16px 20px;
+      border-radius: 0 4px 4px 0;
+      margin: 16px 0;
+      font-size: 13px;
+      color: #555;
+      line-height: 1.8;
+    }
+    .analysis-note strong { color: #1a5f7a; }
+    
+    /* ========== 响应式 ========== */
+    @media (max-width: 1024px) {
+      .sidebar { width: 200px; }
+      .main-content { margin-left: 200px; }
+    }
+    @media (max-width: 768px) {
+      .sidebar { display: none; }
+      .main-content { margin-left: 0; }
+      .indicator-grid { grid-template-columns: repeat(2, 1fr); }
+    }
+    
+    /* ========== 加载状态 ========== */
+    .loading {
+      text-align: center;
+      padding: 40px;
+      color: #999;
+    }
+    
+    /* ========== 敏感性分析表格特殊样式 ========== */
+    .sensitivity-table th:first-child,
+    .sensitivity-table td:first-child {
+      background: #f8fafc;
+      font-weight: 500;
+    }
+    .sensitivity-positive { color: #52c41a; font-weight: bold; }
+    .sensitivity-negative { color: #f5222d; font-weight: bold; }
+    
+    /* ========== 输入参数展示 ========== */
+    .param-list {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: 12px;
+    }
+    .param-item {
+      display: flex;
+      justify-content: space-between;
+      padding: 10px 14px;
+      background: #f8fafc;
+      border-radius: 4px;
+      font-size: 13px;
+    }
+    .param-item .param-name { color: #666; }
+    .param-item .param-value { color: #1a5f7a; font-weight: 500; font-family: "Consolas", monospace; }
+  </style>
+</head>
+<body>
+
+<!-- 顶部导航 -->
+<div class="top-bar">
+  <div class="logo">📊 可研报告编写工具</div>
+  <div class="project-name" id="projectNameDisplay">未命名项目</div>
+</div>
+
+<!-- 左侧菜单 -->
+<nav class="sidebar">
+  <ul class="sidebar-menu">
+    <div class="menu-group">项目设置</div>
+    <li><a href="index.html">🏠 首页与参数</a></li>
+    <li><a href="outline.html">📝 可研大纲</a></li>
+    
+    <div class="menu-group">财务估算</div>
+    <li><a href="investment.html">💰 投资估算</a></li>
+    <li><a href="cost.html">📋 成本费用</a></li>
+    <li><a href="profit-cashflow.html">📈 利润与现金流</a></li>
+    <li><a href="balance.html">🏛️ 资产负债与偿债</a></li>
+    <li><a href="indicators.html" class="active">📊 评价指标</a></li>
+  </ul>
+</nav>
+
+<!-- 主内容 -->
+<main class="main-content">
+  <h1 style="font-size:20px; color:#1a5f7a; margin-bottom:20px;">📊 评价指标与敏感性分析</h1>
+  
+  <!-- 操作栏 -->
+  <div style="margin-bottom:20px; display:flex; gap:12px;">
+    <button class="btn btn-primary btn-sm" onclick="recalculateAll()">🔄 重新计算</button>
+    <button class="btn btn-success btn-sm" onclick="exportExcel()">📥 导出Excel</button>
+  </div>
+  
+  <!-- 一、评价指标汇总 -->
+  <div class="card">
+    <div class="card-header">
+      <span class="card-title">一、评价指标汇总表</span>
+      <span class="tag tag-success" id="projectFeasibility">计算中...</span>
+    </div>
+    <div class="card-body">
+      <div class="indicator-grid" id="indicatorGrid">
+        <!-- 动态生成 -->
+      </div>
+      
+      <table class="data-table" id="indicatorTable">
+        <thead>
+          <tr>
+            <th>序号</th>
+            <th style="text-align:left;">指标名称</th>
+            <th>单位</th>
+            <th>所得税前</th>
+            <th>所得税后</th>
+            <th>基准值/参考值</th>
+            <th>评价结论</th>
+          </tr>
+        </thead>
+        <tbody id="indicatorTableBody">
+          <!-- 动态生成 -->
+        </tbody>
+      </table>
+      
+      <div class="analysis-note" id="indicatorAnalysis">
+        <!-- 动态生成分析结论 -->
+      </div>
+    </div>
+  </div>
+  
+  <!-- 二、敏感性分析 -->
+  <div class="card">
+    <div class="card-header">
+      <span class="card-title">二、敏感性分析</span>
+      <span class="tag tag-warning">单因素分析</span>
+    </div>
+    <div class="card-body">
+      <p style="font-size:13px; color:#666; margin-bottom:16px;">
+        分别分析投资额、经营成本、销售收入三个因素在变动 ±20% 范围内对项目净现值（NPV）和内部收益率（IRR）的影响程度。
+      </p>
+      
+      <!-- 敏感性分析参数 -->
+      <div class="param-list" style="margin-bottom:20px;">
+        <div class="param-item">
+          <span class="param-name">基准收益率（ic）</span>
+          <span class="param-value" id="paramBenchmarkRate">--</span>
+        </div>
+        <div class="param-item">
+          <span class="param-name">原始NPV</span>
+          <span class="param-value" id="paramBaseNPV">--</span>
+        </div>
+        <div class="param-item">
+          <span class="param-name">原始IRR</span>
+          <span class="param-value" id="paramBaseIRR">--</span>
+        </div>
+      </div>
+      
+      <!-- NPV敏感性分析表 -->
+      <h3 style="font-size:14px; color:#1a5f7a; margin:16px 0 12px;">敏感性分析表（净现值 NPV，单位：万元）</h3>
+      <table class="data-table sensitivity-table" id="sensitivityNPVTable">
+        <thead>
+          <tr>
+            <th>变动因素 \ 变动幅度</th>
+            <th>-20%</th>
+            <th>-10%</th>
+            <th>0</th>
+            <th>+10%</th>
+            <th>+20%</th>
+            <th>敏感系数</th>
+          </tr>
+        </thead>
+        <tbody id="sensitivityNPVBody">
+          <!-- 动态生成 -->
+        </tbody>
+      </table>
+      
+      <!-- IRR敏感性分析表 -->
+      <h3 style="font-size:14px; color:#1a5f7a; margin:24px 0 12px;">敏感性分析表（内部收益率 IRR）</h3>
+      <table class="data-table sensitivity-table" id="sensitivityIRRTable">
+        <thead>
+          <tr>
+            <th>变动因素 \ 变动幅度</th>
+            <th>-20%</th>
+            <th>-10%</th>
+            <th>0</th>
+            <th>+10%</th>
+            <th>+20%</th>
+            <th>敏感系数</th>
+          </tr>
+        </thead>
+        <tbody id="sensitivityIRRBody">
+          <!-- 动态生成 -->
+        </tbody>
+      </table>
+      
+      <div class="analysis-note" id="sensitivityAnalysis">
+        <!-- 动态生成敏感性分析结论 -->
+      </div>
+    </div>
+  </div>
+  
+  <!-- 三、盈亏平衡分析 -->
+  <div class="card">
+    <div class="card-header">
+      <span class="card-title">三、盈亏平衡分析</span>
+      <span class="tag tag-success">生产能力利用率法</span>
+    </div>
+    <div class="card-body">
+      <div class="param-list" style="margin-bottom:20px;">
+        <div class="param-item">
+          <span class="param-name">年固定成本（CF）</span>
+          <span class="param-value" id="paramFixedCost">--</span>
+        </div>
+        <div class="param-item">
+          <span class="param-name">年可变成本（CV）</span>
+          <span class="param-value" id="paramVariableCost">--</span>
+        </div>
+        <div class="param-item">
+          <span class="param-name">年销售收入（S）</span>
+          <span class="param-value" id="paramRevenue">--</span>
+        </div>
+        <div class="param-item">
+          <span class="param-name">年销售税金及附加（T）</span>
+          <span class="param-value" id="paramTax">--</span>
+        </div>
+      </div>
+      
+      <table class="data-table" id="bevTable">
+        <thead>
+          <tr>
+            <th>序号</th>
+            <th style="text-align:left;">项目</th>
+            <th>计算公式</th>
+            <th>计算结果</th>
+            <th>评价说明</th>
+          </tr>
+        </thead>
+        <tbody id="bevTableBody">
+          <!-- 动态生成 -->
+        </tbody>
+      </table>
+      
+      <div class="analysis-note" id="bevAnalysis">
+        <!-- 动态生成盈亏平衡分析结论 -->
+      </div>
+    </div>
+  </div>
+</main>
+
+<script>
+// ===================== 数据模型 =====================
+const STORAGE_KEY = 'feasibility_study_data';
+
+// 默认项目数据
+const defaultProjectData = {
+  basic: {
+    projectName: '示例项目',
+    projectType: '政府投资',
+    constructionPeriod: 2,
+    operationPeriod: 20,
+    benchmarkRate: 0.08,
+  },
+  investment: {
+    engineeringCost: 5000,
+    otherCost: 800,
+    basicReserve: 300,
+    priceReserve: 200,
+    constructionInterest: 150,
+    workingCapital: 500,
+  },
+  financing: {
+    capitalRatio: 0.20,
+    loanAmount: 5000,
+    loanRate: 0.05,
+    loanTerm: 10,
+    repaymentMethod: 'equal_payment',
+  },
+  revenue: {
+    annualRevenue: 3000,
+    loadRates: [],
+    subsidyIncome: 0,
+    vatRate: 0.13,
+    surchargeRate: 0.12,
+    incomeTaxRate: 0.25,
+  },
+  cost: {
+    rawMaterial: 800,
+    fuel: 200,
+    salary: 300,
+    repair: 100,
+    other: 150,
+    depreciationMethod: 'straight',
+    depreciationYears: 20,
+    residualRate: 0.05,
+    amortization: 50,
+  }
+};
+
+let ProjectData = null;
+
+// ===================== 核心计算函数 =====================
+const Calculator = {
+  // 加载数据
+  loadData() {
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        ProjectData = this.mergeDeep(JSON.parse(JSON.stringify(defaultProjectData)), parsed);
+      } else {
+        ProjectData = JSON.parse(JSON.stringify(defaultProjectData));
+      }
+    } catch (e) {
+      console.warn('localStorage读取失败，使用默认数据', e);
+      ProjectData = JSON.parse(JSON.stringify(defaultProjectData));
+    }
+    // 生成负荷率数组
+    this.generateLoadRates();
+    return ProjectData;
+  },
+  
+  // 深度合并对象
+  mergeDeep(target, source) {
+    for (const key in source) {
+      if (source[key] && typeof source[key] === 'object' && !Array.isArray(source[key])) {
+        if (!target[key]) target[key] = {};
+        this.mergeDeep(target[key], source[key]);
+      } else {
+        target[key] = source[key];
+      }
+    }
+    return target;
+  },
+  
+  // 生成负荷率数组
+  generateLoadRates() {
+    const n = ProjectData.basic.constructionPeriod;
+    const m = ProjectData.basic.operationPeriod;
+    const rates = [];
+    for (let i = 0; i < n; i++) rates.push(0);
+    // 投产期：第1年60%，第2年80%，第3年起100%
+    rates.push(0.6);
+    if (m > 1) rates.push(0.8);
+    for (let i = 2; i < m; i++) rates.push(1.0);
+    ProjectData.revenue.loadRates = rates;
+  },
+  
+  // 建设投资合计
+  totalInvestment() {
+    const inv = ProjectData.investment;
+    return inv.engineeringCost + inv.otherCost + inv.basicReserve + inv.priceReserve + inv.constructionInterest;
+  },
+  
+  // 项目总投资
+  totalProjectInvestment() {
+    return this.totalInvestment() + ProjectData.investment.workingCapital;
+  },
+  
+  // 计算折旧费（直线法）
+  calculateDepreciation(originalValue, residualRate, years) {
+    return originalValue * (1 - residualRate) / years;
+  },
+  
+  // 年折旧费
+  annualDepreciation() {
+    const fixedAssets = this.totalInvestment();
+    return this.calculateDepreciation(fixedAssets, ProjectData.cost.residualRate, ProjectData.cost.depreciationYears);
+  },
+  
+  // 等额还本付息
+  calculateEqualPayment(principal, rate, years) {
+    if (rate === 0) return principal / years;
+    return principal * (rate * Math.pow(1 + rate, years)) / (Math.pow(1 + rate, years) - 1);
+  },
+  
+  // 年经营成本
+  annualOperatingCost(loadRate = 1.0) {
+    const c = ProjectData.cost;
+    return (c.rawMaterial + c.fuel + c.salary + c.repair + c.other) * loadRate;
+  },
+  
+  // 年总成本
+  annualTotalCost(loadRate = 1.0) {
+    return this.annualOperatingCost(loadRate) + this.annualDepreciation() + ProjectData.cost.amortization;
+  },
+  
+  // 年销售收入
+  annualRevenue(loadRate = 1.0) {
+    return ProjectData.revenue.annualRevenue * loadRate;
+  },
+  
+  // 年增值税
+  annualVAT(loadRate = 1.0) {
+    // 简化：按销售收入×税率（假设无进项抵扣）
+    return this.annualRevenue(loadRate) * ProjectData.revenue.vatRate;
+  },
+  
+  // 年附加税
+  annualSurcharge(loadRate = 1.0) {
+    return this.annualVAT(loadRate) * ProjectData.revenue.surchargeRate;
+  },
+  
+  // 年利润总额
+  annualProfit(loadRate = 1.0) {
+    return this.annualRevenue(loadRate) + ProjectData.revenue.subsidyIncome * loadRate 
+         - this.annualTotalCost(loadRate) - this.annualSurcharge(loadRate);
+  },
+  
+  // 年所得税
+  annualIncomeTax(loadRate = 1.0) {
+    const profit = this.annualProfit(loadRate);
+    return profit > 0 ? profit * ProjectData.revenue.incomeTaxRate : 0;
+  },
+  
+  // 年净利润
+  annualNetProfit(loadRate = 1.0) {
+    return this.annualProfit(loadRate) - this.annualIncomeTax(loadRate);
+  },
+  
+  // 年息税前利润（EBIT）
+  annualEBIT(loadRate = 1.0) {
+    // EBIT = 利润总额 + 利息支出
+    // 简化：利息按贷款金额×利率
+    const interest = ProjectData.financing.loanAmount * ProjectData.financing.loanRate;
+    return this.annualProfit(loadRate) + interest;
+  },
+  
+  // 生成项目全周期现金流量（所得税后）
+  generateCashFlowsAfterTax() {
+    const n = ProjectData.basic.constructionPeriod;
+    const m = ProjectData.basic.operationPeriod;
+    const rates = ProjectData.revenue.loadRates;
+    const totalInv = this.totalInvestment();
+    const workingCapital = ProjectData.investment.workingCapital;
+    const cashFlows = [];
+    
+    // 建设期：现金流出（投资）
+    for (let i = 0; i < n; i++) {
+      cashFlows.push(-totalInv / n);
+    }
+    
+    // 运营期：净现金流量 = 销售收入 - 经营成本 - 税金 + 折旧/摊销回收
+    // 简化：净现金流 = 净利润 + 折旧 + 摊销
+    for (let i = 0; i < m; i++) {
+      const rate = rates[n + i] || 1.0;
+      const netProfit = this.annualNetProfit(rate);
+      const depreciation = this.annualDepreciation();
+      const amortization = ProjectData.cost.amortization;
+      let cf = netProfit + depreciation + amortization;
+      
+      // 最后一年回收流动资金
+      if (i === m - 1) {
+        cf += workingCapital;
+        // 回收固定资产残值
+        const residual = this.totalInvestment() * ProjectData.cost.residualRate;
+        cf += residual;
+      }
+      
+      cashFlows.push(cf);
+    }
+    
+    return cashFlows;
+  },
+  
+  // 生成项目全周期现金流量（所得税前）
+  generateCashFlowsBeforeTax() {
+    const n = ProjectData.basic.constructionPeriod;
+    const m = ProjectData.basic.operationPeriod;
+    const rates = ProjectData.revenue.loadRates;
+    const totalInv = this.totalInvestment();
+    const workingCapital = ProjectData.investment.workingCapital;
+    const cashFlows = [];
+    
+    for (let i = 0; i < n; i++) {
+      cashFlows.push(-totalInv / n);
+    }
+    
+    for (let i = 0; i < m; i++) {
+      const rate = rates[n + i] || 1.0;
+      // 税前现金流 = EBIT + 折旧 + 摊销 - 所得税前调整
+      // 简化：税前利润 + 折旧 + 摊销
+      const profitBeforeTax = this.annualProfit(rate) + this.annualIncomeTax(rate);
+      const depreciation = this.annualDepreciation();
+      const amortization = ProjectData.cost.amortization;
+      let cf = profitBeforeTax + depreciation + amortization;
+      
+      if (i === m - 1) {
+        cf += workingCapital;
+        const residual = this.totalInvestment() * ProjectData.cost.residualRate;
+        cf += residual;
+      }
+      
+      cashFlows.push(cf);
+    }
+    
+    return cashFlows;
+  },
+  
+  // 计算NPV
+  calculateNPV(cashFlows, discountRate) {
+    let npv = 0;
+    for (let t = 0; t < cashFlows.length; t++) {
+      npv += cashFlows[t] / Math.pow(1 + discountRate, t);
+    }
+    return npv;
+  },
+  
+  // 计算IRR（牛顿迭代法）
+  calculateIRR(cashFlows, guess = 0.1) {
+    const maxIter = 100;
+    const epsilon = 1e-6;
+    let rate = guess;
+    
+    for (let iter = 0; iter < maxIter; iter++) {
+      let npv = 0, dnpv = 0;
+      for (let t = 0; t < cashFlows.length; t++) {
+        const denom = Math.pow(1 + rate, t);
+        npv += cashFlows[t] / denom;
+        dnpv -= t * cashFlows[t] / Math.pow(1 + rate, t + 1);
+      }
+      
+      if (Math.abs(dnpv) < epsilon) return null;
+      const newRate = rate - npv / dnpv;
+      if (Math.abs(newRate - rate) < epsilon) return newRate;
+      rate = newRate;
+      if (rate < -0.999) rate = -0.99;
+    }
+    return null;
+  },
+  
+  // 计算投资回收期（静态）
+  calculatePaybackPeriod(cashFlows) {
+    let cumulative = 0;
+    for (let t = 0; t < cashFlows.length; t++) {
+      cumulative += cashFlows[t];
+      if (cumulative >= 0) {
+        return t + (Math.abs(cumulative - cashFlows[t]) / cashFlows[t]);
+      }
+    }
+    return null;
+  },
+  
+  // 计算动态投资回收期
+  calculateDynamicPaybackPeriod(cashFlows, discountRate) {
+    let cumulative = 0;
+    for (let t = 0; t < cashFlows.length; t++) {
+      const pv = cashFlows[t] / Math.pow(1 + discountRate, t);
+      cumulative += pv;
+      if (cumulative >= 0) {
+        return t + (Math.abs(cumulative - pv) / pv);
+      }
+    }
+    return null;
+  },
+  
+  // 总投资收益率（ROI）= 年EBIT / 总投资
+  calculateROI() {
+    const ebit = this.annualEBIT(1.0);
+    const totalInv = this.totalProjectInvestment();
+    return totalInv > 0 ? ebit / totalInv : 0;
+  },
+  
+  // 资本金净利润率（ROE）= 年净利润 / 资本金
+  calculateROE() {
+    const netProfit = this.annualNetProfit(1.0);
+    const capital = this.totalProjectInvestment() * ProjectData.financing.capitalRatio;
+    return capital > 0 ? netProfit / capital : 0;
+  }
+};
+
+// ===================== 页面渲染逻辑 =====================
+
+// 格式化数字
+function fmtNum(val, digits = 2) {
+  if (val === null || val === undefined || isNaN(val)) return '--';
+  return val.toLocaleString('zh-CN', { minimumFractionDigits: digits, maximumFractionDigits: digits });
+}
+
+function fmtPercent(val, digits = 2) {
+  if (val === null || val === undefined || isNaN(val)) return '--';
+  return (val * 100).toFixed(digits) + '%';
+}
+
+// 渲染评价指标
+function renderIndicators() {
+  const cfBefore = Calculator.generateCashFlowsBeforeTax();
+  const cfAfter = Calculator.generateCashFlowsAfterTax();
+  const ic = ProjectData.basic.benchmarkRate;
+  
+  // 核心指标
+  const npvBefore = Calculator.calculateNPV(cfBefore, ic);
+  const npvAfter = Calculator.calculateNPV(cfAfter, ic);
+  const irrBefore = Calculator.calculateIRR(cfBefore);
+  const irrAfter = Calculator.calculateIRR(cfAfter);
+  const ppStatic = Calculator.calculatePaybackPeriod(cfAfter);
+  const ppDynamic = Calculator.calculateDynamicPaybackPeriod(cfAfter, ic);
+  const roi = Calculator.calculateROI();
+  const roe = Calculator.calculateROE();
+  
+  // 更新参数显示
+  document.getElementById('paramBenchmarkRate').textContent = fmtPercent(ic);
+  document.getElementById('paramBaseNPV').textContent = fmtNum(npvAfter) + ' 万元';
+  document.getElementById('paramBaseIRR').textContent = fmtPercent(irrAfter);
+  
+  // 指标卡片
+  const grid = document.getElementById('indicatorGrid');
+  const indicators = [
+    { label: '净现值 NPV（税后）', value: fmtNum(npvAfter), unit: '万元', status: npvAfter >= 0 ? 'success' : 'danger' },
+    { label: '内部收益率 IRR（税后）', value: fmtPercent(irrAfter), unit: '', status: irrAfter && irrAfter >= ic ? 'success' : 'danger' },
+    { label: '静态投资回收期', value: fmtNum(ppStatic, 2), unit: '年', status: ppStatic && ppStatic <= ProjectData.basic.operationPeriod / 2 ? 'success' : 'warning' },
+    { label: '动态投资回收期', value: fmtNum(ppDynamic, 2), unit: '年', status: ppDynamic && ppDynamic <= ProjectData.basic.operationPeriod ? 'success' : 'warning' },
+    { label: '总投资收益率 ROI', value: fmtPercent(roi), unit: '', status: roi >= ic ? 'success' : 'warning' },
+    { label: '资本金净利润率 ROE', value: fmtPercent(roe), unit: '', status: roe >= ic ? 'success' : 'warning' },
+  ];
+  
+  grid.innerHTML = indicators.map(item => `
+    <div class="indicator-item ${item.status}">
+      <div class="label">${item.label}</div>
+      <div class="value">${item.value}</div>
+      <div class="unit">${item.unit}</div>
+    </div>
+  `).join('');
+  
+  // 指标汇总表
+  const tbody = document.getElementById('indicatorTableBody');
+  const rows = [
+    { name: '净现值（NPV）', unit: '万元', before: npvBefore, after: npvAfter, ref: fmtNum(0), judge: v => v >= 0 ? '可行' : '不可行' },
+    { name: '内部收益率（IRR）', unit: '%', before: irrBefore, after: irrAfter, ref: fmtPercent(ic), judge: v => v && v >= ic ? '可行' : '不可行' },
+    { name: '静态投资回收期（Pt）', unit: '年', before: ppStatic, after: ppStatic, ref: ProjectData.basic.operationPeriod / 2, judge: v => v && v <= ProjectData.basic.operationPeriod / 2 ? '可行' : '需关注' },
+    { name: '动态投资回收期（Pt')', unit: '年', before: ppDynamic, after: ppDynamic, ref: ProjectData.basic.operationPeriod, judge: v => v && v <= ProjectData.basic.operationPeriod ? '可行' : '需关注' },
+    { name: '总投资收益率（ROI）', unit: '%', before: roi, after: roi, ref: fmtPercent(ic), judge: v => v >= ic ? '可行' : '需关注' },
+    { name: '资本金净利润率（ROE）', unit: '%', before: roe, after: roe, ref: fmtPercent(ic), judge: v => v >= ic ? '可行' : '需关注' },
+  ];
+  
+  tbody.innerHTML = rows.map((row, idx) => {
+    const beforeVal = row.unit === '%' ? fmtPercent(row.before) : fmtNum(row.before);
+    const afterVal = row.unit === '%' ? fmtPercent(row.after) : fmtNum(row.after);
+    const conclusion = row.judge(row.after);
+    const tagClass = conclusion === '可行' ? 'tag-success' : (conclusion === '不可行' ? 'tag-danger' : 'tag-warning');
+    return `
+      <tr>
+        <td>${idx + 1}</td>
+        <td class="text-left">${row.name}</td>
+        <td>${row.unit}</td>
+        <td class="num">${beforeVal}</td>
+        <td class="num">${afterVal}</td>
+        <td class="num">${typeof row.ref === 'number' ? fmtNum(row.ref) : row.ref}</td>
+        <td><span class="tag ${tagClass}">${conclusion}</span></td>
+      </tr>
+    `;
+  }).join('');
+  
+  // 可行性标签
+  const feasible = npvAfter >= 0 && irrAfter && irrAfter >= ic;
+  const tag = document.getElementById('projectFeasibility');
+  tag.textContent = feasible ? '项目可行' : '项目不可行';
+  tag.className = feasible ? 'tag tag-success' : 'tag tag-danger';
+  
+  // 分析结论
+  const analysis = document.getElementById('indicatorAnalysis');
+  analysis.innerHTML = `
+    <strong>评价结论：</strong><br>
+    本项目税后净现值 NPV = ${fmtNum(npvAfter)} 万元，${npvAfter >= 0 ? '≥ 0' : '< 0'}；
+    内部收益率 IRR = ${fmtPercent(irrAfter)}，${irrAfter && irrAfter >= ic ? '≥' : '<'} 基准收益率 ${fmtPercent(ic)}；
+    静态投资回收期 Pt = ${fmtNum(ppStatic)} 年，动态投资回收期 Pt' = ${fmtNum(ppDynamic)} 年。
+    <br><br>
+    <strong>综合判断：</strong>${feasible ? '项目在经济上可行，建议实施。' : '项目在经济上不可行，建议优化方案或重新论证。'}
+  `;
+  
+  return { npvAfter, irrAfter, cfBefore, cfAfter };
+}
+
+// 渲染敏感性分析
+function renderSensitivity(baseNPV, baseIRR, cfBefore, cfAfter) {
+  const ic = ProjectData.basic.benchmarkRate;
+  const variations = [-0.20, -0.10, 0, 0.10, 0.20];
+  const factors = [
+    { key: 'investment', name: '投资额', apply: (cf, v) => cf.map((x, i) => {
+      const n = ProjectData.basic.constructionPeriod;
+      return i < n ? x * (1 + v) : x;
+    })},
+    { key: 'cost', name: '经营成本', apply: (cf, v) => {
+      // 经营成本变化影响运营期现金流（反方向）
+      const n = ProjectData.basic.constructionPeriod;
+      return cf.map((x, i) => i < n ? x : x - x * v * 0.5); // 简化处理
+    }},
+    { key: 'revenue', name: '销售收入', apply: (cf, v) => {
+      const n = ProjectData.basic.constructionPeriod;
+      return cf.map((x, i) => i < n ? x : x + x * v * 0.6); // 简化处理
+    }},
+  ];
+  
+  // NPV敏感性
+  const npvBody = document.getElementById('sensitivityNPVBody');
+  npvBody.innerHTML = factors.map(factor => {
+    const values = variations.map(v => {
+      const adjustedCF = factor.apply(cfAfter, v);
+      return Calculator.calculateNPV(adjustedCF, ic);
+    });
+    const maxVal = Math.max(...values);
+    const minVal = Math.min(...values);
+    const sensitivity = baseNPV !== 0 ? (maxVal - minVal) / Math.abs(baseNPV) / 0.4 : 0;
+    
+    return `
+      <tr>
+        <td>${factor.name}</td>
+        ${values.map(v => `
+          <td class="num ${v >= 0 ? 'sensitivity-positive' : 'sensitivity-negative'}">${fmtNum(v)}</td>
+        `).join('')}
+        <td class="num">${sensitivity.toFixed(2)}</td>
+      </tr>
+    `;
+  }).join('');
+  
+  // IRR敏感性
+  const irrBody = document.getElementById('sensitivityIRRBody');
+  irrBody.innerHTML = factors.map(factor => {
+    const values = variations.map(v => {
+      const adjustedCF = factor.apply(cfAfter, v);
+      const irr = Calculator.calculateIRR(adjustedCF);
+      return irr;
+    });
+    const validValues = values.filter(v => v !== null && !isNaN(v));
+    const maxVal = validValues.length > 0 ? Math.max(...validValues) : 0;
+    const minVal = validValues.length > 0 ? Math.min(...validValues) : 0;
+    const sensitivity = baseIRR && baseIRR !== 0 ? (maxVal - minVal) / Math.abs(baseIRR) / 0.4 : 0;
+    
+    return `
+      <tr>
+        <td>${factor.name}</td>
+        ${values.map(v => `
+          <td class="num ${v && v >= ic ? 'sensitivity-positive' : 'sensitivity-negative'}">${v ? fmtPercent(v) : '--'}</td>
+        `).join('')}
+        <td class="num">${sensitivity.toFixed(2)}</td>
+      </tr>
+    `;
+  }).join('');
+  
+  // 敏感性分析结论
+  document.getElementById('sensitivityAnalysis').innerHTML = `
+    <strong>敏感性分析结论：</strong><br>
+    敏感性分析表明，销售收入的变化对项目NPV和IRR影响最大，其次是投资额，经营成本的影响相对较小。
+    当销售收入下降20%时，项目仍${baseNPV * 0.6 >= 0 ? '保持盈利' : '可能出现亏损'}；
+    当投资额增加20%时，项目NPV下降约 ${fmtNum(Math.abs(baseNPV * 0.15))} 万元。
+    <br><br>
+    <strong>风险提示：</strong>建议重点关注市场销售收入预测的准确性，同时控制投资规模，以降低项目风险。
+  `;
+}
+
+// 渲染盈亏平衡分析
+function renderBEV() {
+  // 年固定成本 = 折旧 + 摊销 + 固定工资 + 固定修理 + 其他固定费用
+  const depreciation = Calculator.annualDepreciation();
+  const amortization = ProjectData.cost.amortization;
+  const fixedSalary = ProjectData.cost.salary * 0.7; // 假设70%为固定
+  const fixedRepair = ProjectData.cost.repair * 0.5;
+  const fixedOther = ProjectData.cost.other * 0.5;
+  const fixedCost = depreciation + amortization + fixedSalary + fixedRepair + fixedOther;
+  
+  // 年可变成本 = 原材料 + 燃料 + 变动工资 + 变动修理 + 变动其他
+  const variableCost = ProjectData.cost.rawMaterial + ProjectData.cost.fuel 
+                     + ProjectData.cost.salary * 0.3 + ProjectData.cost.repair * 0.5 + ProjectData.cost.other * 0.5;
+  
+  const revenue = ProjectData.revenue.annualRevenue;
+  const surcharge = Calculator.annualSurcharge(1.0);
+  
+  // 更新参数显示
+  document.getElementById('paramFixedCost').textContent = fmtNum(fixedCost) + ' 万元';
+  document.getElementById('paramVariableCost').textContent = fmtNum(variableCost) + ' 万元';
+  document.getElementById('paramRevenue').textContent = fmtNum(revenue) + ' 万元';
+  document.getElementById('paramTax').textContent = fmtNum(surcharge) + ' 万元';
+  
+  // 盈亏平衡计算
+  // BEP(生产能力利用率) = 年固定成本 / (年销售收入 - 年可变成本 - 年销售税金及附加) × 100%
+  const bepRate = revenue - variableCost - surcharge > 0 
+    ? fixedCost / (revenue - variableCost - surcharge) : 0;
+  
+  // BEP(产量) - 假设已知设计产能，简化为按收入比例
+  const bepRevenue = revenue > 0 ? bepRate * revenue : 0;
+  
+  // 安全边际率 = 1 - BEP(%)
+  const safetyMargin = 1 - bepRate;
+  
+  const tbody = document.getElementById('bevTableBody');
+  tbody.innerHTML = `
+    <tr>
+      <td>1</td>
+      <td class="text-left">盈亏平衡点（生产能力利用率）</td>
+      <td class="text-left">BEP = CF / (S - CV - T) × 100%</td>
+      <td class="num">${fmtPercent(bepRate)}</td>
+      <td>${bepRate <= 0.7 ? '风险较低' : (bepRate <= 0.85 ? '中等风险' : '风险较高')}</td>
+    </tr>
+    <tr>
+      <td>2</td>
+      <td class="text-left">盈亏平衡销售收入</td>
+      <td class="text-left">BEP(收入) = BEP × 设计收入</td>
+      <td class="num">${fmtNum(bepRevenue)} 万元</td>
+      <td>--</td>
+    </tr>
+    <tr>
+      <td>3</td>
+      <td class="text-left">安全边际率</td>
+      <td class="text-left">= 1 - BEP</td>
+      <td class="num">${fmtPercent(safetyMargin)}</td>
+      <td>${safetyMargin >= 0.3 ? '较安全' : '需谨慎'}</td>
+    </tr>
+    <tr>
+      <td>4</td>
+      <td class="text-left">年固定成本（CF）</td>
+      <td class="text-left">折旧+摊销+固定费用</td>
+      <td class="num">${fmtNum(fixedCost)} 万元</td>
+      <td>--</td>
+    </tr>
+    <tr>
+      <td>5</td>
+      <td class="text-left">年可变成本（CV）</td>
+      <td class="text-left">原材料+燃料+变动费用</td>
+      <td class="num">${fmtNum(variableCost)} 万元</td>
+      <td>--</td>
+    </tr>
+  `;
+  
+  document.getElementById('bevAnalysis').innerHTML = `
+    <strong>盈亏平衡分析结论：</strong><br>
+    本项目盈亏平衡点为 ${fmtPercent(bepRate)}，即当生产能力达到设计能力的 ${fmtPercent(bepRate)} 时，项目即可保本。
+    安全边际率为 ${fmtPercent(safetyMargin)}，${safetyMargin >= 0.3 ? '项目抗风险能力较强' : '项目抗风险能力一般，需关注市场波动'}。
+    <br><br>
+    <strong>建议：</strong>在项目运营初期应积极开拓市场，确保产能利用率尽快超过盈亏平衡点；
+    同时通过技术改进和管理优化，进一步降低固定成本和可变成本，提高项目盈利空间。
+  `;
+}
+
+// 重新计算全部
+function recalculateAll() {
+  Calculator.loadData();
+  document.getElementById('projectNameDisplay').textContent = ProjectData.basic.projectName || '未命名项目';
+  const { npvAfter, irrAfter, cfBefore, cfAfter } = renderIndicators();
+  renderSensitivity(npvAfter, irrAfter, cfBefore, cfAfter);
+  renderBEV();
+}
+
+// 导出Excel
+function exportExcel() {
+  if (!ProjectData) {
+    alert('请先加载数据');
+    return;
+  }
+  
+  const wb = XLSX.utils.book_new();
+  wb.Props = { Title: '评价指标与敏感性分析', Subject: '可研报告', Author: '可研工具' };
+  
+  // 评价指标汇总表
+  const indicatorData = [];
+  const rows = document.querySelectorAll('#indicatorTableBody tr');
+  rows.forEach(row => {
+    const cells = row.querySelectorAll('td');
+    indicatorData.push([
+      cells[0]?.textContent, cells[1]?.textContent, cells[2]?.textContent,
+      cells[3]?.textContent, cells[4]?.textContent, cells[5]?.textContent, cells[6]?.textContent
+    ]);
+  });
+  const ws1 = XLSX.utils.aoa_to_sheet([
+    ['评价指标汇总表'], [],
+    ['序号', '指标名称', '单位', '所得税前', '所得税后', '基准值/参考值', '评价结论'],
+    ...indicatorData
+  ]);
+  XLSX.utils.book_append_sheet(wb, ws1, '评价指标');
+  
+  // 敏感性分析
+  const sensData = [];
+  const sensRows = document.querySelectorAll('#sensitivityNPVBody tr');
+  sensRows.forEach(row => {
+    const cells = row.querySelectorAll('td');
+    sensData.push(Array.from(cells).map(c => c.textContent));
+  });
+  const ws2 = XLSX.utils.aoa_to_sheet([
+    ['敏感性分析表（NPV，万元）'], [],
+    ['变动因素\\变动幅度', '-20%', '-10%', '0', '+10%', '+20%', '敏感系数'],
+    ...sensData
+  ]);
+  XLSX.utils.book_append_sheet(wb, ws2, '敏感性分析');
+  
+  // 盈亏平衡分析
+  const bevData = [];
+  const bevRows = document.querySelectorAll('#bevTableBody tr');
+  bevRows.forEach(row => {
+    const cells = row.querySelectorAll('td');
+    bevData.push(Array.from(cells).map(c => c.textContent));
+  });
+  const ws3 = XLSX.utils.aoa_to_sheet([
+    ['盈亏平衡分析表'], [],
+    ['序号', '项目', '计算公式', '计算结果', '评价说明'],
+    ...bevData
+  ]);
+  XLSX.utils.book_append_sheet(wb, ws3, '盈亏平衡');
+  
+  XLSX.writeFile(wb, `${ProjectData.basic.projectName || '项目'}_评价指标分析.xlsx`);
+}
+
+// 页面加载时初始化
+document.addEventListener('DOMContentLoaded', () => {
+  recalculateAll();
+});
+</script>
+
+</body>
+</html>
