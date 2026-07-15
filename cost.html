@@ -1,0 +1,1941 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>成本费用估算 - 可研报告编写工具</title>
+    <script src="https://cdn.sheetjs.com/xlsx-0.20.0/package/dist/xlsx.full.min.js"></script>
+    <style>
+        /* ========== 全局重置与基础样式 ========== */
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+        html { font-size: 14px; }
+        body {
+            font-family: "Microsoft YaHei", "PingFang SC", sans-serif;
+            background-color: #f5f7fa;
+            color: #333333;
+            line-height: 1.5;
+            min-height: 100vh;
+        }
+        a { text-decoration: none; color: inherit; }
+        ul, ol { list-style: none; }
+        input, select, button {
+            font-family: inherit;
+            font-size: 14px;
+            outline: none;
+        }
+        input[type="number"], input[type="text"], select {
+            height: 36px;
+            padding: 0 10px;
+            border: 1px solid #e0e0e0;
+            border-radius: 4px;
+            background: #fff;
+            color: #333;
+            width: 100%;
+            transition: border-color 0.2s, box-shadow 0.2s;
+        }
+        input[type="number"]:focus, input[type="text"]:focus, select:focus {
+            border-color: #57c5b6;
+            box-shadow: 0 0 0 3px rgba(87, 197, 182, 0.15);
+        }
+        button {
+            cursor: pointer;
+            border: none;
+            border-radius: 4px;
+            padding: 8px 16px;
+            transition: all 0.2s;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 4px;
+        }
+        .btn-primary {
+            background-color: #1a5f7a;
+            color: #fff;
+            border: 1px solid #1a5f7a;
+        }
+        .btn-primary:hover { background-color: #144a5e; border-color: #144a5e; }
+        .btn-default {
+            background-color: #fff;
+            color: #333;
+            border: 1px solid #e0e0e0;
+        }
+        .btn-default:hover { background-color: #f5f7fa; border-color: #ccc; }
+        .btn-success { background-color: #52c41a; color: #fff; border: 1px solid #52c41a; }
+        .btn-success:hover { background-color: #46a717; }
+        .btn-danger { background-color: #f5222d; color: #fff; border: 1px solid #f5222d; }
+        .btn-danger:hover { background-color: #d61c24; }
+        .btn-small { padding: 4px 10px; font-size: 12px; height: 28px; }
+
+        /* ========== 顶部导航栏 ========== */
+        .top-nav {
+            height: 60px;
+            background-color: #1a5f7a;
+            color: #fff;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 24px;
+            position: fixed;
+            top: 0; left: 0; right: 0;
+            z-index: 1000;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.12);
+        }
+        .top-nav .logo { font-size: 18px; font-weight: bold; }
+        .top-nav .project-info { font-size: 13px; opacity: 0.9; }
+        .top-nav .actions { display: flex; gap: 10px; }
+
+        /* ========== 左侧菜单 ========== */
+        .layout {
+            display: flex;
+            min-height: 100vh;
+            padding-top: 60px;
+        }
+        .sidebar {
+            width: 240px;
+            background-color: #fff;
+            border-right: 1px solid #e0e0e0;
+            flex-shrink: 0;
+            position: fixed;
+            top: 60px; bottom: 0; left: 0;
+            overflow-y: auto;
+            z-index: 900;
+        }
+        .sidebar-menu { padding: 12px 0; }
+        .sidebar-menu li a {
+            display: flex;
+            align-items: center;
+            padding: 12px 24px;
+            font-size: 14px;
+            color: #333;
+            transition: background 0.2s, color 0.2s;
+            border-left: 3px solid transparent;
+        }
+        .sidebar-menu li a:hover { background-color: #f5f7fa; color: #1a5f7a; }
+        .sidebar-menu li a.active {
+            background-color: #e8f4f8;
+            color: #1a5f7a;
+            border-left-color: #1a5f7a;
+            font-weight: bold;
+        }
+        .sidebar-menu li a .icon { width: 20px; margin-right: 10px; text-align: center; }
+
+        /* ========== 主内容区域 ========== */
+        .main-content {
+            margin-left: 240px;
+            padding: 24px;
+            flex: 1;
+            min-width: 0;
+        }
+        .page-header {
+            margin-bottom: 24px;
+        }
+        .page-header h1 {
+            font-size: 22px;
+            color: #1a5f7a;
+            margin-bottom: 8px;
+        }
+        .page-header p { color: #666; font-size: 13px; }
+
+        /* ========== 卡片 ========== */
+        .card {
+            background: #fff;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            margin-bottom: 20px;
+            overflow: hidden;
+        }
+        .card-header {
+            padding: 14px 20px;
+            border-bottom: 1px solid #e0e0e0;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: #fafbfc;
+        }
+        .card-header h2 { font-size: 16px; color: #1a5f7a; }
+        .card-body { padding: 20px; }
+
+        /* ========== 标签页 ========== */
+        .tabs {
+            display: flex;
+            border-bottom: 2px solid #e0e0e0;
+            margin-bottom: 20px;
+            gap: 4px;
+        }
+        .tab-item {
+            padding: 10px 18px;
+            cursor: pointer;
+            border-bottom: 2px solid transparent;
+            margin-bottom: -2px;
+            font-size: 14px;
+            color: #666;
+            transition: all 0.2s;
+            white-space: nowrap;
+        }
+        .tab-item:hover { color: #1a5f7a; }
+        .tab-item.active {
+            color: #1a5f7a;
+            border-bottom-color: #1a5f7a;
+            font-weight: bold;
+        }
+        .tab-panel { display: none; }
+        .tab-panel.active { display: block; }
+
+        /* ========== 表格 ========== */
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 13px;
+        }
+        .data-table thead th {
+            background-color: #1a5f7a;
+            color: #fff;
+            padding: 10px 12px;
+            text-align: center;
+            font-weight: 500;
+            border: 1px solid #1a5f7a;
+        }
+        .data-table tbody td {
+            padding: 8px 12px;
+            border: 1px solid #e0e0e0;
+            text-align: center;
+            color: #333;
+        }
+        .data-table tbody tr:nth-child(even) { background-color: #fafbfc; }
+        .data-table tbody tr:hover { background-color: #f0f8ff; }
+        .data-table td.text-left { text-align: left; }
+        .data-table td.text-right { text-align: right; }
+        .data-table tfoot td {
+            font-weight: bold;
+            background-color: #e8f4f8;
+            border-top: 2px solid #1a5f7a;
+        }
+        .data-table td input { width: 100%; text-align: center; }
+        .data-table td input[type="text"] { text-align: left; }
+        .data-table td.num { font-family: "Consolas", monospace; }
+
+        /* ========== 表单网格 ========== */
+        .form-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 16px 20px;
+        }
+        .form-group { display: flex; flex-direction: column; gap: 6px; }
+        .form-group label { font-size: 13px; color: #666; font-weight: 500; }
+        .form-group .unit { font-size: 12px; color: #999; margin-left: 4px; }
+        .form-row { display: flex; gap: 16px; margin-bottom: 16px; align-items: flex-end; }
+        .form-row .form-group { flex: 1; margin-bottom: 0; }
+
+        /* ========== 按钮组 ========== */
+        .btn-group { display: flex; gap: 10px; margin-bottom: 16px; flex-wrap: wrap; }
+        .btn-group.right { justify-content: flex-end; }
+
+        /* ========== 信息提示 ========== */
+        .info-bar {
+            background: #e8f4f8;
+            border-left: 4px solid #1a5f7a;
+            padding: 10px 14px;
+            margin-bottom: 16px;
+            font-size: 13px;
+            color: #333;
+            border-radius: 0 4px 4px 0;
+        }
+        .formula-note {
+            font-size: 12px;
+            color: #666;
+            margin-top: 4px;
+            font-style: italic;
+        }
+        .highlight { color: #1a5f7a; font-weight: bold; }
+
+        /* ========== 合计行高亮 ========== */
+        .total-row td { background-color: #e8f4f8 !important; font-weight: bold; }
+
+        /* ========== 响应式 ========== */
+        @media (max-width: 1024px) {
+            .sidebar { width: 200px; }
+            .main-content { margin-left: 200px; padding: 16px; }
+        }
+        @media (max-width: 768px) {
+            .sidebar { display: none; }
+            .main-content { margin-left: 0; }
+            .form-grid { grid-template-columns: 1fr; }
+            .top-nav .project-info { display: none; }
+        }
+
+        /* ========== 辅助类 ========== */
+        .mb-0 { margin-bottom: 0; }
+        .mb-16 { margin-bottom: 16px; }
+        .mb-20 { margin-bottom: 20px; }
+        .mt-16 { margin-top: 16px; }
+        .text-center { text-align: center; }
+        .text-right { text-align: right; }
+        .text-muted { color: #999; }
+        .font-num { font-family: "Consolas", monospace; }
+        .w-100 { width: 100%; }
+        .w-120 { width: 120px; }
+        .w-160 { width: 160px; }
+        .w-200 { width: 200px; }
+        .w-240 { width: 240px; }
+        .hidden { display: none !important; }
+        .flex { display: flex; }
+        .items-center { align-items: center; }
+        .justify-between { justify-content: space-between; }
+        .gap-8 { gap: 8px; }
+        .gap-16 { gap: 16px; }
+        .gap-20 { gap: 20px; }
+    </style>
+</head>
+<body>
+    <!-- 顶部导航栏 -->
+    <nav class="top-nav">
+        <div class="logo">📊 可研报告编写工具</div>
+        <div class="project-info" id="projectInfoDisplay">项目：未命名 | 计算期：22年（建设期2年+运营期20年）</div>
+        <div class="actions">
+            <button class="btn-primary btn-small" onclick="saveData()">💾 保存数据</button>
+            <button class="btn-success btn-small" onclick="exportExcel()">📥 导出Excel</button>
+        </div>
+    </nav>
+
+    <!-- 页面布局 -->
+    <div class="layout">
+        <!-- 左侧菜单 -->
+        <aside class="sidebar">
+            <ul class="sidebar-menu">
+                <li><a href="index.html"><span class="icon">🏠</span> 首页与参数设置</a></li>
+                <li><a href="outline.html"><span class="icon">📋</span> 可研报告大纲</a></li>
+                <li><a href="investment.html"><span class="icon">💰</span> 投资估算</a></li>
+                <li><a href="cost.html" class="active"><span class="icon">📈</span> 成本费用估算</a></li>
+                <li><a href="profit-cashflow.html"><span class="icon">💵</span> 利润与现金流量</a></li>
+                <li><a href="balance.html"><span class="icon">📊</span> 资产负债与偿债</a></li>
+                <li><a href="indicators.html"><span class="icon">📉</span> 评价指标</a></li>
+            </ul>
+        </aside>
+
+        <!-- 主内容区域 -->
+        <main class="main-content">
+            <!-- 页面标题 -->
+            <div class="page-header">
+                <h1>成本费用估算</h1>
+                <p>依据《建设项目经济评价方法与参数（第三版）》附录B表B7及相关附表编制</p>
+            </div>
+
+            <!-- 模块切换标签页 -->
+            <div class="tabs" id="moduleTabs">
+                <div class="tab-item active" data-tab="totalCost" onclick="switchTab('totalCost')">总成本费用估算表（B7）</div>
+                <div class="tab-item" data-tab="material" onclick="switchTab('material')">外购原材料费（B7-1）</div>
+                <div class="tab-item" data-tab="fuel" onclick="switchTab('fuel')">外购燃料动力费（B7-2）</div>
+                <div class="tab-item" data-tab="depreciation" onclick="switchTab('depreciation')">固定资产折旧费（B7-3）</div>
+                <div class="tab-item" data-tab="amortization" onclick="switchTab('amortization')">无形资产摊销（B7-4）</div>
+                <div class="tab-item" data-tab="salary" onclick="switchTab('salary')">工资及福利费（B7-5）</div>
+                <div class="tab-item" data-tab="revenueTax" onclick="switchTab('revenueTax')">营业收入、增值税及附加</div>
+                <div class="tab-item" data-tab="assetDep" onclick="switchTab('assetDep')">资产折旧与摊销综合表</div>
+            </div>
+
+            <!-- ========== 总成本费用估算表（B7） ========== -->
+            <div class="tab-panel active" id="panel-totalCost">
+                <div class="card">
+                    <div class="card-header">
+                        <h2>总成本费用估算表（生产要素法）</h2>
+                        <div class="btn-group">
+                            <button class="btn-primary btn-small" onclick="calculateTotalCost()">🔄 重新计算</button>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div class="info-bar">
+                            <strong>计算公式：</strong>总成本费用 = 外购原材料费 + 外购燃料动力费 + 工资及福利费 + 修理费 + 其他费用 + 折旧费 + 摊销费 + 利息支出<br>
+                            经营成本 = 总成本费用 - 折旧费 - 摊销费 - 利息支出
+                        </div>
+                        <div class="form-grid mb-16">
+                            <div class="form-group">
+                                <label>外购原材料费 <span class="unit">（万元/年）</span></label>
+                                <input type="number" id="tc_rawMaterial" step="0.01" onchange="updateTotalCost()">
+                            </div>
+                            <div class="form-group">
+                                <label>外购燃料动力费 <span class="unit">（万元/年）</span></label>
+                                <input type="number" id="tc_fuel" step="0.01" onchange="updateTotalCost()">
+                            </div>
+                            <div class="form-group">
+                                <label>工资及福利费 <span class="unit">（万元/年）</span></label>
+                                <input type="number" id="tc_salary" step="0.01" onchange="updateTotalCost()">
+                            </div>
+                            <div class="form-group">
+                                <label>修理费 <span class="unit">（万元/年）</span></label>
+                                <input type="number" id="tc_repair" step="0.01" onchange="updateTotalCost()">
+                            </div>
+                            <div class="form-group">
+                                <label>其他费用 <span class="unit">（万元/年）</span></label>
+                                <input type="number" id="tc_other" step="0.01" onchange="updateTotalCost()">
+                            </div>
+                            <div class="form-group">
+                                <label>折旧费 <span class="unit">（万元/年）</span></label>
+                                <input type="number" id="tc_depreciation" step="0.01" onchange="updateTotalCost()">
+                                <div class="formula-note">直线法：年折旧额 = 固定资产原值 × (1 - 残值率) / 折旧年限</div>
+                            </div>
+                            <div class="form-group">
+                                <label>摊销费 <span class="unit">（万元/年）</span></label>
+                                <input type="number" id="tc_amortization" step="0.01" onchange="updateTotalCost()">
+                            </div>
+                            <div class="form-group">
+                                <label>利息支出 <span class="unit">（万元/年）</span></label>
+                                <input type="number" id="tc_interest" step="0.01" onchange="updateTotalCost()">
+                            </div>
+                        </div>
+
+                        <div class="card mb-16">
+                            <div class="card-body">
+                                <table class="data-table" id="totalCostTable">
+                                    <thead>
+                                        <tr>
+                                            <th class="w-200">序号</th>
+                                            <th>项目</th>
+                                            <th>计算期（万元）</th>
+                                            <th>备注</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr><td class="text-center">1</td><td class="text-left">外购原材料费</td><td class="num text-right" id="tbl_rawMaterial">0.00</td><td class="text-left">B7-1</td></tr>
+                                        <tr><td class="text-center">2</td><td class="text-left">外购燃料及动力费</td><td class="num text-right" id="tbl_fuel">0.00</td><td class="text-left">B7-2</td></tr>
+                                        <tr><td class="text-center">3</td><td class="text-left">工资及福利费</td><td class="num text-right" id="tbl_salary">0.00</td><td class="text-left">B7-5</td></tr>
+                                        <tr><td class="text-center">4</td><td class="text-left">修理费</td><td class="num text-right" id="tbl_repair">0.00</td><td class="text-left">—</td></tr>
+                                        <tr><td class="text-center">5</td><td class="text-left">其他费用</td><td class="num text-right" id="tbl_other">0.00</td><td class="text-left">—</td></tr>
+                                        <tr><td class="text-center">6</td><td class="text-left">折旧费</td><td class="num text-right" id="tbl_depreciation">0.00</td><td class="text-left">B7-3</td></tr>
+                                        <tr><td class="text-center">7</td><td class="text-left">摊销费</td><td class="num text-right" id="tbl_amortization">0.00</td><td class="text-left">B7-4</td></tr>
+                                        <tr><td class="text-center">8</td><td class="text-left">利息支出</td><td class="num text-right" id="tbl_interest">0.00</td><td class="text-left">含长期借款利息</td></tr>
+                                        <tr class="total-row"><td class="text-center">9</td><td class="text-left">总成本费用</td><td class="num text-right highlight" id="tbl_totalCost">0.00</td><td class="text-left">= 1+2+3+4+5+6+7+8</td></tr>
+                                        <tr><td class="text-center">10</td><td class="text-left">经营成本</td><td class="num text-right highlight" id="tbl_operatingCost">0.00</td><td class="text-left">= 9 - 6 - 7 - 8</td></tr>
+                                        <tr><td class="text-center">—</td><td class="text-left">投产期负荷率</td><td class="num text-right" id="tbl_loadRate">60%,80%</td><td class="text-left">建设期0%，达产期100%</td></tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        <div class="info-bar">
+                            <strong>负荷率说明：</strong>运营期各年成本费用根据生产负荷率调整。正常年按100%负荷计算，投产期按实际负荷率计算。<br>
+                            <span id="loadRateDesc">建设期无负荷，投产期负荷率逐步提升，达产期按100%负荷计算。</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ========== 外购原材料费估算表（B7-1） ========== -->
+            <div class="tab-panel" id="panel-material">
+                <div class="card">
+                    <div class="card-header">
+                        <h2>外购原材料费估算表（B7-1）</h2>
+                        <div class="btn-group">
+                            <button class="btn-primary btn-small" onclick="addMaterialRow()">➕ 增加行</button>
+                            <button class="btn-danger btn-small" onclick="removeMaterialRow()">➖ 删除行</button>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div class="info-bar">
+                            <strong>计算公式：</strong>年原材料费 = 年消耗量 × 单价（含税/不含税按实际情况处理）
+                        </div>
+                        <table class="data-table" id="materialTable">
+                            <thead>
+                                <tr>
+                                    <th class="w-200">序号</th>
+                                    <th>原材料名称</th>
+                                    <th>单位</th>
+                                    <th>单价（元）</th>
+                                    <th>年消耗量</th>
+                                    <th>年金额（万元）</th>
+                                    <th>备注</th>
+                                </tr>
+                            </thead>
+                            <tbody id="materialBody">
+                                <tr>
+                                    <td>1</td>
+                                    <td><input type="text" class="w-160" placeholder="原材料名称"></td>
+                                    <td><input type="text" class="w-120" placeholder="单位"></td>
+                                    <td><input type="number" class="w-120" step="0.01" placeholder="单价" onchange="calculateMaterialTotal()"></td>
+                                    <td><input type="number" class="w-120" step="0.01" placeholder="年消耗量" onchange="calculateMaterialTotal()"></td>
+                                    <td class="num text-right">0.00</td>
+                                    <td><input type="text" class="w-160" placeholder="备注"></td>
+                                </tr>
+                            </tbody>
+                            <tfoot>
+                                <tr>
+                                    <td colspan="5" class="text-right">合计</td>
+                                    <td class="num text-right highlight" id="materialTotal">0.00</td>
+                                    <td></td>
+                                </tr>
+                            </tfoot>
+                        </table>
+                        <div class="btn-group right mt-16">
+                            <button class="btn-primary" onclick="syncMaterialToTotal()">↪ 同步到总成本费用</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ========== 外购燃料动力费估算表（B7-2） ========== -->
+            <div class="tab-panel" id="panel-fuel">
+                <div class="card">
+                    <div class="card-header">
+                        <h2>外购燃料及动力费估算表（B7-2）</h2>
+                        <div class="btn-group">
+                            <button class="btn-primary btn-small" onclick="addFuelRow()">➕ 增加行</button>
+                            <button class="btn-danger btn-small" onclick="removeFuelRow()">➖ 删除行</button>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div class="info-bar">
+                            <strong>计算公式：</strong>年燃料动力费 = 年消耗量 × 单价
+                        </div>
+                        <table class="data-table" id="fuelTable">
+                            <thead>
+                                <tr>
+                                    <th class="w-200">序号</th>
+                                    <th>燃料/动力名称</th>
+                                    <th>单位</th>
+                                    <th>单价（元）</th>
+                                    <th>年消耗量</th>
+                                    <th>年金额（万元）</th>
+                                    <th>备注</th>
+                                </tr>
+                            </thead>
+                            <tbody id="fuelBody">
+                                <tr>
+                                    <td>1</td>
+                                    <td><input type="text" class="w-160" placeholder="燃料/动力名称"></td>
+                                    <td><input type="text" class="w-120" placeholder="单位"></td>
+                                    <td><input type="number" class="w-120" step="0.01" placeholder="单价" onchange="calculateFuelTotal()"></td>
+                                    <td><input type="number" class="w-120" step="0.01" placeholder="年消耗量" onchange="calculateFuelTotal()"></td>
+                                    <td class="num text-right">0.00</td>
+                                    <td><input type="text" class="w-160" placeholder="备注"></td>
+                                </tr>
+                            </tbody>
+                            <tfoot>
+                                <tr>
+                                    <td colspan="5" class="text-right">合计</td>
+                                    <td class="num text-right highlight" id="fuelTotal">0.00</td>
+                                    <td></td>
+                                </tr>
+                            </tfoot>
+                        </table>
+                        <div class="btn-group right mt-16">
+                            <button class="btn-primary" onclick="syncFuelToTotal()">↪ 同步到总成本费用</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ========== 固定资产折旧费估算表（B7-3） ========== -->
+            <div class="tab-panel" id="panel-depreciation">
+                <div class="card">
+                    <div class="card-header">
+                        <h2>固定资产折旧费估算表（B7-3）</h2>
+                        <div class="btn-group">
+                            <button class="btn-primary btn-small" onclick="calculateDepreciation()">🔄 计算折旧</button>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div class="info-bar">
+                            <strong>直线法公式：</strong>年折旧额 = 固定资产原值 × (1 - 残值率) / 折旧年限<br>
+                            <strong>残值：</strong>固定资产原值 × 残值率
+                        </div>
+                        <div class="form-grid mb-16">
+                            <div class="form-group">
+                                <label>固定资产原值 <span class="unit">（万元）</span></label>
+                                <input type="number" id="dep_originalValue" step="0.01" onchange="calculateDepreciation()">
+                            </div>
+                            <div class="form-group">
+                                <label>残值率 <span class="unit">（如0.05表示5%）</span></label>
+                                <input type="number" id="dep_residualRate" step="0.01" value="0.05" onchange="calculateDepreciation()">
+                            </div>
+                            <div class="form-group">
+                                <label>折旧年限 <span class="unit">（年）</span></label>
+                                <input type="number" id="dep_years" step="1" value="20" onchange="calculateDepreciation()">
+                            </div>
+                            <div class="form-group">
+                                <label>折旧方法</label>
+                                <select id="dep_method" onchange="calculateDepreciation()">
+                                    <option value="straight">直线法（平均年限法）</option>
+                                    <option value="double">双倍余额递减法</option>
+                                    <option value="sum">年数总和法</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="card mb-16">
+                            <div class="card-body">
+                                <table class="data-table">
+                                    <thead>
+                                        <tr>
+                                            <th>项目</th>
+                                            <th>数值</th>
+                                            <th>单位</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr>
+                                            <td class="text-left">固定资产原值</td>
+                                            <td class="num text-right" id="dep_resultOriginal">0.00</td>
+                                            <td>万元</td>
+                                        </tr>
+                                        <tr>
+                                            <td class="text-left">残值率</td>
+                                            <td class="num text-right" id="dep_resultRate">5.00%</td>
+                                            <td>—</td>
+                                        </tr>
+                                        <tr>
+                                            <td class="text-left">预计残值</td>
+                                            <td class="num text-right" id="dep_resultResidual">0.00</td>
+                                            <td>万元</td>
+                                        </tr>
+                                        <tr>
+                                            <td class="text-left">折旧年限</td>
+                                            <td class="num text-right" id="dep_resultYears">20</td>
+                                            <td>年</td>
+                                        </tr>
+                                        <tr class="total-row">
+                                            <td class="text-left">年折旧额</td>
+                                            <td class="num text-right highlight" id="dep_resultAnnual">0.00</td>
+                                            <td>万元/年</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        <div class="info-bar">
+                            <strong>各年折旧明细：</strong>（直线法下各年折旧额相同）
+                        </div>
+                        <div class="card-body">
+                            <table class="data-table" id="depDetailTable">
+                                <thead>
+                                    <tr>
+                                        <th>年份</th>
+                                        <th>年初净值（万元）</th>
+                                        <th>年折旧额（万元）</th>
+                                        <th>年末净值（万元）</th>
+                                        <th>备注</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="depDetailBody">
+                                </tbody>
+                            </table>
+                        </div>
+                        <div class="btn-group right mt-16">
+                            <button class="btn-primary" onclick="syncDepreciationToTotal()">↪ 同步到总成本费用</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ========== 无形资产摊销估算表（B7-4） ========== -->
+            <div class="tab-panel" id="panel-amortization">
+                <div class="card">
+                    <div class="card-header">
+                        <h2>无形资产摊销估算表（B7-4）</h2>
+                        <div class="btn-group">
+                            <button class="btn-primary btn-small" onclick="addAmortizationRow()">➕ 增加行</button>
+                            <button class="btn-danger btn-small" onclick="removeAmortizationRow()">➖ 删除行</button>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div class="info-bar">
+                            <strong>计算公式：</strong>年摊销额 = 无形资产原值 / 摊销年限（直线法）
+                        </div>
+                        <table class="data-table" id="amortizationTable">
+                            <thead>
+                                <tr>
+                                    <th>序号</th>
+                                    <th>无形资产名称</th>
+                                    <th>原值（万元）</th>
+                                    <th>摊销年限（年）</th>
+                                    <th>年摊销额（万元）</th>
+                                    <th>备注</th>
+                                </tr>
+                            </thead>
+                            <tbody id="amortizationBody">
+                                <tr>
+                                    <td>1</td>
+                                    <td><input type="text" class="w-160" placeholder="无形资产名称"></td>
+                                    <td><input type="number" class="w-120" step="0.01" placeholder="原值" onchange="calculateAmortizationTotal()"></td>
+                                    <td><input type="number" class="w-120" step="1" placeholder="年限" onchange="calculateAmortizationTotal()"></td>
+                                    <td class="num text-right">0.00</td>
+                                    <td><input type="text" class="w-160" placeholder="备注"></td>
+                                </tr>
+                            </tbody>
+                            <tfoot>
+                                <tr>
+                                    <td colspan="4" class="text-right">合计</td>
+                                    <td class="num text-right highlight" id="amortizationTotal">0.00</td>
+                                    <td></td>
+                                </tr>
+                            </tfoot>
+                        </table>
+                        <div class="btn-group right mt-16">
+                            <button class="btn-primary" onclick="syncAmortizationToTotal()">↪ 同步到总成本费用</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ========== 工资及福利费估算表（B7-5） ========== -->
+            <div class="tab-panel" id="panel-salary">
+                <div class="card">
+                    <div class="card-header">
+                        <h2>工资及福利费估算表（B7-5）</h2>
+                        <div class="btn-group">
+                            <button class="btn-primary btn-small" onclick="calculateSalary()">🔄 计算</button>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div class="info-bar">
+                            <strong>计算公式：</strong>工资总额 = 定员人数 × 人均年工资；福利费 = 工资总额 × 福利费率；工资及福利费合计 = 工资总额 + 福利费
+                        </div>
+                        <div class="form-grid mb-16">
+                            <div class="form-group">
+                                <label>定员人数 <span class="unit">（人）</span></label>
+                                <input type="number" id="sal_persons" step="1" onchange="calculateSalary()">
+                            </div>
+                            <div class="form-group">
+                                <label>人均年工资 <span class="unit">（万元/人·年）</span></label>
+                                <input type="number" id="sal_avgSalary" step="0.01" onchange="calculateSalary()">
+                            </div>
+                            <div class="form-group">
+                                <label>福利费率 <span class="unit">（如0.14表示14%）</span></label>
+                                <input type="number" id="sal_welfareRate" step="0.01" value="0.14" onchange="calculateSalary()">
+                            </div>
+                        </div>
+                        <div class="card mb-16">
+                            <div class="card-body">
+                                <table class="data-table">
+                                    <thead>
+                                        <tr>
+                                            <th>项目</th>
+                                            <th>数值</th>
+                                            <th>单位</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr>
+                                            <td class="text-left">定员人数</td>
+                                            <td class="num text-right" id="sal_resultPersons">0</td>
+                                            <td>人</td>
+                                        </tr>
+                                        <tr>
+                                            <td class="text-left">人均年工资</td>
+                                            <td class="num text-right" id="sal_resultAvg">0.00</td>
+                                            <td>万元/人·年</td>
+                                        </tr>
+                                        <tr>
+                                            <td class="text-left">工资总额</td>
+                                            <td class="num text-right" id="sal_resultTotal">0.00</td>
+                                            <td>万元/年</td>
+                                        </tr>
+                                        <tr>
+                                            <td class="text-left">福利费率</td>
+                                            <td class="num text-right" id="sal_resultRate">14.00%</td>
+                                            <td>—</td>
+                                        </tr>
+                                        <tr>
+                                            <td class="text-left">福利费</td>
+                                            <td class="num text-right" id="sal_resultWelfare">0.00</td>
+                                            <td>万元/年</td>
+                                        </tr>
+                                        <tr class="total-row">
+                                            <td class="text-left">工资及福利费合计</td>
+                                            <td class="num text-right highlight" id="sal_resultSum">0.00</td>
+                                            <td>万元/年</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                        <div class="btn-group right">
+                            <button class="btn-primary" onclick="syncSalaryToTotal()">↪ 同步到总成本费用</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ========== 营业收入、增值税及税金附加估算表（新增） ========== -->
+            <div class="tab-panel" id="panel-revenueTax">
+                <div class="card">
+                    <div class="card-header">
+                        <h2>营业收入、增值税及税金附加估算表</h2>
+                        <div class="btn-group">
+                            <button class="btn-primary btn-small" onclick="calculateRevenueTax()">🔄 计算</button>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div class="info-bar">
+                            <strong>计算公式：</strong>营业收入 = 正常年营业收入 × 负荷率；增值税 = 销项税 - 进项税（简化：增值税 = 营业收入 × 增值税率）；税金及附加 = 增值税 × 附加税率
+                        </div>
+                        <div class="form-grid mb-16">
+                            <div class="form-group">
+                                <label>正常年营业收入 <span class="unit">（万元/年）</span></label>
+                                <input type="number" id="rt_annualRevenue" step="0.01" onchange="calculateRevenueTax()">
+                            </div>
+                            <div class="form-group">
+                                <label>增值税率 <span class="unit">（如0.13表示13%）</span></label>
+                                <input type="number" id="rt_vatRate" step="0.01" value="0.13" onchange="calculateRevenueTax()">
+                            </div>
+                            <div class="form-group">
+                                <label>附加税率 <span class="unit">（如0.12表示12%）</span></label>
+                                <input type="number" id="rt_surchargeRate" step="0.01" value="0.12" onchange="calculateRevenueTax()">
+                            </div>
+                            <div class="form-group">
+                                <label>进项税率/可抵扣比例 <span class="unit">（简化：0~1）</span></label>
+                                <input type="number" id="rt_inputVatRate" step="0.01" value="0.00" onchange="calculateRevenueTax()">
+                                <div class="formula-note">简化处理：增值税 = 营业收入 × 增值税率 × (1 - 进项抵扣比例)</div>
+                            </div>
+                        </div>
+                        <div class="card mb-16">
+                            <div class="card-body">
+                                <table class="data-table" id="revenueTaxTable">
+                                    <thead>
+                                        <tr>
+                                            <th class="w-240">项目</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="revenueTaxBody">
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ========== 资产折旧与摊销综合估算表（新增） ========== -->
+            <div class="tab-panel" id="panel-assetDep">
+                <div class="card">
+                    <div class="card-header">
+                        <h2>资产折旧与摊销估算表（综合）</h2>
+                        <div class="btn-group">
+                            <button class="btn-primary btn-small" onclick="calculateAssetDep()">🔄 计算</button>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div class="info-bar">
+                            <strong>计算说明：</strong>固定资产在建设期不计提折旧，从运营期开始计提；无形资产及其他资产在建设期不进行摊销，从运营期开始摊销。折旧/摊销年限届满后不再计提。
+                        </div>
+                        
+                        <h3 style="font-size:15px;color:#1a5f7a;margin:16px 0 12px 0;border-left:4px solid #1a5f7a;padding-left:10px;">一、固定资产折旧</h3>
+                        <div class="form-grid mb-16">
+                            <div class="form-group">
+                                <label>固定资产原值 <span class="unit">（万元）</span></label>
+                                <input type="number" id="ad_depOriginal" step="0.01" onchange="calculateAssetDep()">
+                            </div>
+                            <div class="form-group">
+                                <label>残值率 <span class="unit">（如0.05表示5%）</span></label>
+                                <input type="number" id="ad_depResidualRate" step="0.01" value="0.05" onchange="calculateAssetDep()">
+                            </div>
+                            <div class="form-group">
+                                <label>折旧年限 <span class="unit">（年）</span></label>
+                                <input type="number" id="ad_depYears" step="1" value="20" onchange="calculateAssetDep()">
+                            </div>
+                            <div class="form-group">
+                                <label>折旧方法</label>
+                                <select id="ad_depMethod" onchange="calculateAssetDep()">
+                                    <option value="straight">直线法（平均年限法）</option>
+                                    <option value="double">双倍余额递减法</option>
+                                    <option value="sum">年数总和法</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <h3 style="font-size:15px;color:#1a5f7a;margin:16px 0 12px 0;border-left:4px solid #1a5f7a;padding-left:10px;">二、无形资产摊销</h3>
+                        <div class="form-grid mb-16">
+                            <div class="form-group">
+                                <label>无形资产原值合计 <span class="unit">（万元）</span></label>
+                                <input type="number" id="ad_amortOriginal" step="0.01" onchange="calculateAssetDep()">
+                            </div>
+                            <div class="form-group">
+                                <label>摊销年限 <span class="unit">（年）</span></label>
+                                <input type="number" id="ad_amortYears" step="1" value="10" onchange="calculateAssetDep()">
+                            </div>
+                        </div>
+
+                        <h3 style="font-size:15px;color:#1a5f7a;margin:16px 0 12px 0;border-left:4px solid #1a5f7a;padding-left:10px;">三、其他资产摊销</h3>
+                        <div class="form-grid mb-16">
+                            <div class="form-group">
+                                <label>其他资产原值合计 <span class="unit">（万元）</span></label>
+                                <input type="number" id="ad_otherOriginal" step="0.01" onchange="calculateAssetDep()">
+                            </div>
+                            <div class="form-group">
+                                <label>摊销年限 <span class="unit">（年）</span></label>
+                                <input type="number" id="ad_otherYears" step="1" value="5" onchange="calculateAssetDep()">
+                            </div>
+                        </div>
+
+                        <h3 style="font-size:15px;color:#1a5f7a;margin:16px 0 12px 0;border-left:4px solid #1a5f7a;padding-left:10px;">四、计算期各年折旧与摊销明细</h3>
+                        <div class="card-body" style="overflow-x:auto;">
+                            <table class="data-table" id="assetDepTable">
+                                <thead>
+                                    <tr>
+                                        <th class="w-200">项目</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="assetDepBody">
+                                </tbody>
+                                <tfoot>
+                                    <tr class="total-row">
+                                        <td class="text-left">折旧与摊销合计</td>
+                                    </tr>
+                                </tfoot>
+                            </table>
+                        </div>
+                        <div class="btn-group right mt-16">
+                            <button class="btn-primary" onclick="syncAssetDepToTotal()">↪ 同步到总成本费用</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script>
+    // ==================== 数据模型 ====================
+    const STORAGE_KEY = "feasibility_study_data";
+
+    // 默认数据结构（与规范一致）
+    const DefaultProjectData = {
+        basic: {
+            projectName: "",
+            projectType: "政府投资",
+            constructionPeriod: 2,
+            operationPeriod: 20,
+            benchmarkRate: 0.08,
+        },
+        investment: {
+            engineeringCost: 0,
+            otherCost: 0,
+            basicReserve: 0,
+            priceReserve: 0,
+            constructionInterest: 0,
+            workingCapital: 0,
+        },
+        financing: {
+            capitalRatio: 0.20,
+            loanAmount: 0,
+            loanRate: 0.05,
+            loanTerm: 10,
+            repaymentMethod: "equal_payment",
+        },
+        revenue: {
+            annualRevenue: 0,
+            loadRates: [],
+            subsidyIncome: 0,
+            vatRate: 0.13,
+            surchargeRate: 0.12,
+            incomeTaxRate: 0.25,
+        },
+        cost: {
+            rawMaterial: 0,
+            fuel: 0,
+            salary: 0,
+            repair: 0,
+            other: 0,
+            depreciationMethod: "straight",
+            depreciationYears: 20,
+            residualRate: 0.05,
+            amortization: 0,
+        },
+        // 成本费用模块扩展数据
+        costDetail: {
+            materials: [],       // [{name, unit, price, quantity, amount, remark}]
+            fuels: [],           // [{name, unit, price, quantity, amount, remark}]
+            depreciation: { originalValue: 0, residualRate: 0.05, years: 20, method: "straight" },
+            amortizations: [],   // [{name, originalValue, years, annualAmount, remark}]
+            salary: { persons: 0, avgSalary: 0, welfareRate: 0.14 },
+            interest: 0,
+            // 新增：其他资产摊销
+            otherAssets: [],     // [{name, originalValue, years, annualAmount, remark}]
+            // 新增：营业收入、增值税及附加参数
+            revenueTax: { annualRevenue: 0, vatRate: 0.13, surchargeRate: 0.12, inputVatRate: 0 },
+            // 新增：资产折旧与摊销综合参数
+            assetDep: { depOriginal: 0, depResidualRate: 0.05, depYears: 20, depMethod: "straight", amortOriginal: 0, amortYears: 10, otherOriginal: 0, otherYears: 5 }
+        }
+    };
+
+    let ProjectData = JSON.parse(JSON.stringify(DefaultProjectData));
+
+    // ==================== 核心计算函数（Calculator） ====================
+    const Calculator = {
+        // 计算折旧费（直线法）
+        calculateDepreciation: (originalValue, residualRate, years) => {
+            return originalValue * (1 - residualRate) / years;
+        },
+
+        // 计算建设期利息
+        calculateConstructionInterest: (loans, rate) => {
+            // 各年应计利息 = (年初借款本息累计 + 本年借款额/2) × 年利率
+            let totalInterest = 0;
+            let accumulated = 0;
+            for (let i = 0; i < loans.length; i++) {
+                const interest = (accumulated + loans[i] / 2) * rate;
+                totalInterest += interest;
+                accumulated += loans[i] + interest;
+            }
+            return totalInterest;
+        },
+
+        // 等额还本付息（年金法）
+        calculateEqualPayment: (principal, rate, years) => {
+            // A = P × [i(1+i)^n] / [(1+i)^n - 1]
+            if (rate === 0) return principal / years;
+            return principal * (rate * Math.pow(1 + rate, years)) / (Math.pow(1 + rate, years) - 1);
+        },
+
+        // 等额本金还款
+        calculateEqualPrincipal: (principal, rate, years) => {
+            const principalPerYear = principal / years;
+            const payments = [];
+            let remaining = principal;
+            for (let i = 0; i < years; i++) {
+                const interest = remaining * rate;
+                payments.push({
+                    principal: principalPerYear,
+                    interest: interest,
+                    total: principalPerYear + interest,
+                    remaining: remaining - principalPerYear
+                });
+                remaining -= principalPerYear;
+            }
+            return payments;
+        },
+
+        // 计算NPV
+        calculateNPV: (cashFlows, discountRate) => {
+            let npv = 0;
+            for (let t = 0; t < cashFlows.length; t++) {
+                npv += cashFlows[t] / Math.pow(1 + discountRate, t);
+            }
+            return npv;
+        },
+
+        // 计算IRR（牛顿迭代法）
+        calculateIRR: (cashFlows, guess = 0.1) => {
+            const maxIter = 100;
+            const tolerance = 1e-7;
+            let rate = guess;
+            for (let i = 0; i < maxIter; i++) {
+                let npv = 0, dnpv = 0;
+                for (let t = 0; t < cashFlows.length; t++) {
+                    npv += cashFlows[t] / Math.pow(1 + rate, t);
+                    dnpv -= t * cashFlows[t] / Math.pow(1 + rate, t + 1);
+                }
+                if (Math.abs(npv) < tolerance) return rate;
+                if (Math.abs(dnpv) < tolerance) break;
+                rate = rate - npv / dnpv;
+            }
+            return null;
+        },
+
+        // 计算投资回收期
+        calculatePaybackPeriod: (cashFlows) => {
+            let cumulative = 0;
+            for (let t = 0; t < cashFlows.length; t++) {
+                cumulative += cashFlows[t];
+                if (cumulative >= 0) {
+                    return t + (Math.abs(cumulative - cashFlows[t]) / cashFlows[t]);
+                }
+            }
+            return null;
+        },
+
+        // 双倍余额递减法折旧
+        calculateDoubleDeclining: (originalValue, residualRate, years) => {
+            const rate = 2 / years;
+            const results = [];
+            let bookValue = originalValue;
+            const residualValue = originalValue * residualRate;
+            for (let i = 1; i <= years; i++) {
+                let depreciation = bookValue * rate;
+                if (bookValue - depreciation < residualValue) {
+                    depreciation = bookValue - residualValue;
+                }
+                if (i === years) {
+                    depreciation = bookValue - residualValue;
+                }
+                bookValue -= depreciation;
+                results.push({ year: i, depreciation: depreciation, bookValue: bookValue });
+            }
+            return results;
+        },
+
+        // 年数总和法折旧
+        calculateSumOfYears: (originalValue, residualRate, years) => {
+            const depreciable = originalValue * (1 - residualRate);
+            const sumYears = years * (years + 1) / 2;
+            const results = [];
+            let bookValue = originalValue;
+            for (let i = 1; i <= years; i++) {
+                const depreciation = depreciable * (years - i + 1) / sumYears;
+                bookValue -= depreciation;
+                results.push({ year: i, depreciation: depreciation, bookValue: bookValue });
+            }
+            return results;
+        }
+    };
+
+    // ==================== 数据持久化 ====================
+    function loadData() {
+        try {
+            const saved = localStorage.getItem(STORAGE_KEY);
+            if (saved) {
+                const parsed = JSON.parse(saved);
+                ProjectData = { ...DefaultProjectData, ...parsed };
+                if (parsed.costDetail) {
+                    ProjectData.costDetail = { ...DefaultProjectData.costDetail, ...parsed.costDetail };
+                }
+            }
+        } catch (e) {
+            console.warn("加载数据失败:", e);
+        }
+        updateUI();
+    }
+
+    function saveData() {
+        try {
+            collectAllData();
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(ProjectData));
+            alert("✅ 数据已保存到本地存储");
+        } catch (e) {
+            alert("❌ 保存失败：" + e.message);
+        }
+    }
+
+    function collectAllData() {
+        // 总成本费用
+        ProjectData.cost.rawMaterial = parseFloat(document.getElementById("tc_rawMaterial")?.value) || 0;
+        ProjectData.cost.fuel = parseFloat(document.getElementById("tc_fuel")?.value) || 0;
+        ProjectData.cost.salary = parseFloat(document.getElementById("tc_salary")?.value) || 0;
+        ProjectData.cost.repair = parseFloat(document.getElementById("tc_repair")?.value) || 0;
+        ProjectData.cost.other = parseFloat(document.getElementById("tc_other")?.value) || 0;
+        ProjectData.cost.depreciationMethod = document.getElementById("dep_method")?.value || "straight";
+        ProjectData.cost.depreciationYears = parseInt(document.getElementById("dep_years")?.value) || 20;
+        ProjectData.cost.residualRate = parseFloat(document.getElementById("dep_residualRate")?.value) || 0.05;
+        ProjectData.cost.amortization = parseFloat(document.getElementById("tc_amortization")?.value) || 0;
+
+        // 折旧
+        ProjectData.costDetail.depreciation.originalValue = parseFloat(document.getElementById("dep_originalValue")?.value) || 0;
+        ProjectData.costDetail.depreciation.residualRate = parseFloat(document.getElementById("dep_residualRate")?.value) || 0.05;
+        ProjectData.costDetail.depreciation.years = parseInt(document.getElementById("dep_years")?.value) || 20;
+        ProjectData.costDetail.depreciation.method = document.getElementById("dep_method")?.value || "straight";
+
+        // 工资
+        ProjectData.costDetail.salary.persons = parseInt(document.getElementById("sal_persons")?.value) || 0;
+        ProjectData.costDetail.salary.avgSalary = parseFloat(document.getElementById("sal_avgSalary")?.value) || 0;
+        ProjectData.costDetail.salary.welfareRate = parseFloat(document.getElementById("sal_welfareRate")?.value) || 0.14;
+
+        // 利息
+        ProjectData.costDetail.interest = parseFloat(document.getElementById("tc_interest")?.value) || 0;
+
+        // 营业收入、增值税及附加
+        if (!ProjectData.costDetail.revenueTax) ProjectData.costDetail.revenueTax = {};
+        ProjectData.costDetail.revenueTax.annualRevenue = parseFloat(document.getElementById("rt_annualRevenue")?.value) || 0;
+        ProjectData.costDetail.revenueTax.vatRate = parseFloat(document.getElementById("rt_vatRate")?.value) || 0.13;
+        ProjectData.costDetail.revenueTax.surchargeRate = parseFloat(document.getElementById("rt_surchargeRate")?.value) || 0.12;
+        ProjectData.costDetail.revenueTax.inputVatRate = parseFloat(document.getElementById("rt_inputVatRate")?.value) || 0;
+
+        // 资产折旧与摊销综合
+        if (!ProjectData.costDetail.assetDep) ProjectData.costDetail.assetDep = {};
+        ProjectData.costDetail.assetDep.depOriginal = parseFloat(document.getElementById("ad_depOriginal")?.value) || 0;
+        ProjectData.costDetail.assetDep.depResidualRate = parseFloat(document.getElementById("ad_depResidualRate")?.value) || 0.05;
+        ProjectData.costDetail.assetDep.depYears = parseInt(document.getElementById("ad_depYears")?.value) || 20;
+        ProjectData.costDetail.assetDep.depMethod = document.getElementById("ad_depMethod")?.value || "straight";
+        ProjectData.costDetail.assetDep.amortOriginal = parseFloat(document.getElementById("ad_amortOriginal")?.value) || 0;
+        ProjectData.costDetail.assetDep.amortYears = parseInt(document.getElementById("ad_amortYears")?.value) || 10;
+        ProjectData.costDetail.assetDep.otherOriginal = parseFloat(document.getElementById("ad_otherOriginal")?.value) || 0;
+        ProjectData.costDetail.assetDep.otherYears = parseInt(document.getElementById("ad_otherYears")?.value) || 5;
+
+        // 原材料明细
+        ProjectData.costDetail.materials = collectTableData("materialBody", ["name", "unit", "price", "quantity", "amount", "remark"]);
+        // 燃料明细
+        ProjectData.costDetail.fuels = collectTableData("fuelBody", ["name", "unit", "price", "quantity", "amount", "remark"]);
+        // 摊销明细
+        ProjectData.costDetail.amortizations = collectTableData("amortizationBody", ["name", "originalValue", "years", "annualAmount", "remark"]);
+    }
+
+    function collectTableData(tbodyId, fields) {
+        const tbody = document.getElementById(tbodyId);
+        if (!tbody) return [];
+        const rows = tbody.querySelectorAll("tr");
+        const data = [];
+        rows.forEach(row => {
+            const inputs = row.querySelectorAll("input");
+            const tds = row.querySelectorAll("td");
+            if (inputs.length >= fields.length - 1) {
+                const item = {};
+                fields.forEach((f, i) => {
+                    if (f === "amount" && tds[i]) {
+                        item[f] = parseFloat(tds[i].textContent) || 0;
+                    } else if (inputs[i]) {
+                        item[f] = inputs[i].value;
+                        if (["price", "quantity", "originalValue", "years", "annualAmount"].includes(f)) {
+                            item[f] = parseFloat(inputs[i].value) || 0;
+                        }
+                    }
+                });
+                data.push(item);
+            }
+        });
+        return data;
+    }
+
+    function updateUI() {
+        // 项目信息
+        const b = ProjectData.basic;
+        const calcPeriod = (b.constructionPeriod || 2) + (b.operationPeriod || 20);
+        document.getElementById("projectInfoDisplay").textContent =
+            `项目：${b.projectName || "未命名"} | 计算期：${calcPeriod}年（建设期${b.constructionPeriod}年+运营期${b.operationPeriod}年）`;
+
+        // 总成本费用
+        document.getElementById("tc_rawMaterial").value = ProjectData.cost.rawMaterial || 0;
+        document.getElementById("tc_fuel").value = ProjectData.cost.fuel || 0;
+        document.getElementById("tc_salary").value = ProjectData.cost.salary || 0;
+        document.getElementById("tc_repair").value = ProjectData.cost.repair || 0;
+        document.getElementById("tc_other").value = ProjectData.cost.other || 0;
+        document.getElementById("tc_depreciation").value =
+            (ProjectData.cost.depreciationMethod === "straight" && ProjectData.costDetail.depreciation.originalValue > 0)
+                ? Calculator.calculateDepreciation(ProjectData.costDetail.depreciation.originalValue, ProjectData.costDetail.depreciation.residualRate, ProjectData.costDetail.depreciation.years).toFixed(2)
+                : (ProjectData.cost.depreciation || 0);
+        document.getElementById("tc_amortization").value = ProjectData.cost.amortization || 0;
+        document.getElementById("tc_interest").value = ProjectData.costDetail.interest || 0;
+
+        // 折旧
+        document.getElementById("dep_originalValue").value = ProjectData.costDetail.depreciation.originalValue || 0;
+        document.getElementById("dep_residualRate").value = ProjectData.costDetail.depreciation.residualRate || 0.05;
+        document.getElementById("dep_years").value = ProjectData.costDetail.depreciation.years || 20;
+        document.getElementById("dep_method").value = ProjectData.costDetail.depreciation.method || "straight";
+
+        // 工资
+        document.getElementById("sal_persons").value = ProjectData.costDetail.salary.persons || 0;
+        document.getElementById("sal_avgSalary").value = ProjectData.costDetail.salary.avgSalary || 0;
+        document.getElementById("sal_welfareRate").value = ProjectData.costDetail.salary.welfareRate || 0.14;
+
+        // 营业收入、增值税及附加
+        document.getElementById("rt_annualRevenue").value = ProjectData.costDetail.revenueTax?.annualRevenue || ProjectData.revenue.annualRevenue || 0;
+        document.getElementById("rt_vatRate").value = ProjectData.costDetail.revenueTax?.vatRate || ProjectData.revenue.vatRate || 0.13;
+        document.getElementById("rt_surchargeRate").value = ProjectData.costDetail.revenueTax?.surchargeRate || ProjectData.revenue.surchargeRate || 0.12;
+        document.getElementById("rt_inputVatRate").value = ProjectData.costDetail.revenueTax?.inputVatRate || 0;
+
+        // 资产折旧与摊销综合
+        document.getElementById("ad_depOriginal").value = ProjectData.costDetail.assetDep?.depOriginal || ProjectData.costDetail.depreciation.originalValue || 0;
+        document.getElementById("ad_depResidualRate").value = ProjectData.costDetail.assetDep?.depResidualRate || ProjectData.costDetail.depreciation.residualRate || 0.05;
+        document.getElementById("ad_depYears").value = ProjectData.costDetail.assetDep?.depYears || ProjectData.costDetail.depreciation.years || 20;
+        document.getElementById("ad_depMethod").value = ProjectData.costDetail.assetDep?.depMethod || ProjectData.costDetail.depreciation.method || "straight";
+        document.getElementById("ad_amortOriginal").value = ProjectData.costDetail.assetDep?.amortOriginal || 0;
+        document.getElementById("ad_amortYears").value = ProjectData.costDetail.assetDep?.amortYears || 10;
+        document.getElementById("ad_otherOriginal").value = ProjectData.costDetail.assetDep?.otherOriginal || 0;
+        document.getElementById("ad_otherYears").value = ProjectData.costDetail.assetDep?.otherYears || 5;
+
+        // 恢复表格数据
+        restoreTableData("materialBody", ProjectData.costDetail.materials, ["name", "unit", "price", "quantity", null, "remark"]);
+        restoreTableData("fuelBody", ProjectData.costDetail.fuels, ["name", "unit", "price", "quantity", null, "remark"]);
+        restoreTableData("amortizationBody", ProjectData.costDetail.amortizations, ["name", "originalValue", "years", null, "remark"]);
+
+        // 重新计算
+        calculateTotalCost();
+        calculateMaterialTotal();
+        calculateFuelTotal();
+        calculateDepreciation();
+        calculateAmortizationTotal();
+        calculateSalary();
+        calculateRevenueTax();
+        calculateAssetDep();
+    }
+
+    function restoreTableData(tbodyId, data, fields) {
+        const tbody = document.getElementById(tbodyId);
+        if (!tbody || !data || data.length === 0) return;
+        tbody.innerHTML = "";
+        data.forEach((item, idx) => {
+            const tr = document.createElement("tr");
+            tr.innerHTML = generateRowHtml(tbodyId, idx + 1, item, fields);
+            tbody.appendChild(tr);
+        });
+    }
+
+    function generateRowHtml(tableType, seq, item, fields) {
+        if (tableType === "materialBody") {
+            return `<td>${seq}</td>
+                <td><input type="text" class="w-160" value="${item.name || ""}" placeholder="原材料名称"></td>
+                <td><input type="text" class="w-120" value="${item.unit || ""}" placeholder="单位"></td>
+                <td><input type="number" class="w-120" step="0.01" value="${item.price || ""}" placeholder="单价" onchange="calculateMaterialTotal()"></td>
+                <td><input type="number" class="w-120" step="0.01" value="${item.quantity || ""}" placeholder="年消耗量" onchange="calculateMaterialTotal()"></td>
+                <td class="num text-right">0.00</td>
+                <td><input type="text" class="w-160" value="${item.remark || ""}" placeholder="备注"></td>`;
+        } else if (tableType === "fuelBody") {
+            return `<td>${seq}</td>
+                <td><input type="text" class="w-160" value="${item.name || ""}" placeholder="燃料/动力名称"></td>
+                <td><input type="text" class="w-120" value="${item.unit || ""}" placeholder="单位"></td>
+                <td><input type="number" class="w-120" step="0.01" value="${item.price || ""}" placeholder="单价" onchange="calculateFuelTotal()"></td>
+                <td><input type="number" class="w-120" step="0.01" value="${item.quantity || ""}" placeholder="年消耗量" onchange="calculateFuelTotal()"></td>
+                <td class="num text-right">0.00</td>
+                <td><input type="text" class="w-160" value="${item.remark || ""}" placeholder="备注"></td>`;
+        } else if (tableType === "amortizationBody") {
+            return `<td>${seq}</td>
+                <td><input type="text" class="w-160" value="${item.name || ""}" placeholder="无形资产名称"></td>
+                <td><input type="number" class="w-120" step="0.01" value="${item.originalValue || ""}" placeholder="原值" onchange="calculateAmortizationTotal()"></td>
+                <td><input type="number" class="w-120" step="1" value="${item.years || ""}" placeholder="年限" onchange="calculateAmortizationTotal()"></td>
+                <td class="num text-right">0.00</td>
+                <td><input type="text" class="w-160" value="${item.remark || ""}" placeholder="备注"></td>`;
+        }
+        return "";
+    }
+
+    // ==================== 标签页切换 ====================
+    function switchTab(tabId) {
+        document.querySelectorAll(".tab-item").forEach(t => t.classList.remove("active"));
+        document.querySelectorAll(".tab-panel").forEach(p => p.classList.remove("active"));
+        document.querySelector(`.tab-item[data-tab="${tabId}"]`).classList.add("active");
+        document.getElementById(`panel-${tabId}`).classList.add("active");
+    }
+
+    // ==================== 总成本费用计算 ====================
+    function updateTotalCost() {
+        calculateTotalCost();
+    }
+
+    function calculateTotalCost() {
+        const rawMaterial = parseFloat(document.getElementById("tc_rawMaterial")?.value) || 0;
+        const fuel = parseFloat(document.getElementById("tc_fuel")?.value) || 0;
+        const salary = parseFloat(document.getElementById("tc_salary")?.value) || 0;
+        const repair = parseFloat(document.getElementById("tc_repair")?.value) || 0;
+        const other = parseFloat(document.getElementById("tc_other")?.value) || 0;
+        const depreciation = parseFloat(document.getElementById("tc_depreciation")?.value) || 0;
+        const amortization = parseFloat(document.getElementById("tc_amortization")?.value) || 0;
+        const interest = parseFloat(document.getElementById("tc_interest")?.value) || 0;
+
+        const totalCost = rawMaterial + fuel + salary + repair + other + depreciation + amortization + interest;
+        const operatingCost = totalCost - depreciation - amortization - interest;
+
+        document.getElementById("tbl_rawMaterial").textContent = formatNumber(rawMaterial);
+        document.getElementById("tbl_fuel").textContent = formatNumber(fuel);
+        document.getElementById("tbl_salary").textContent = formatNumber(salary);
+        document.getElementById("tbl_repair").textContent = formatNumber(repair);
+        document.getElementById("tbl_other").textContent = formatNumber(other);
+        document.getElementById("tbl_depreciation").textContent = formatNumber(depreciation);
+        document.getElementById("tbl_amortization").textContent = formatNumber(amortization);
+        document.getElementById("tbl_interest").textContent = formatNumber(interest);
+        document.getElementById("tbl_totalCost").textContent = formatNumber(totalCost);
+        document.getElementById("tbl_operatingCost").textContent = formatNumber(operatingCost);
+
+        // 更新负荷率说明
+        updateLoadRateDesc();
+    }
+
+    function updateLoadRateDesc() {
+        const constructionPeriod = ProjectData.basic.constructionPeriod || 2;
+        const operationPeriod = ProjectData.basic.operationPeriod || 20;
+        const totalYears = constructionPeriod + operationPeriod;
+        
+        let loadRates = ProjectData.revenue.loadRates || [];
+        if (loadRates.length === 0) {
+            for (let i = 0; i < constructionPeriod; i++) loadRates.push(0);
+            if (operationPeriod >= 2) { loadRates.push(0.6); loadRates.push(0.8); }
+            for (let i = 2; i < operationPeriod; i++) loadRates.push(1.0);
+        }
+        while (loadRates.length < totalYears) loadRates.push(1.0);
+        
+        let desc = "建设期";
+        for (let i = 0; i < constructionPeriod; i++) desc += "0%" + (i < constructionPeriod - 1 ? "、" : "");
+        desc += "；投产期";
+        let prodRates = [];
+        for (let i = constructionPeriod; i < totalYears; i++) {
+            if (loadRates[i] < 1.0) prodRates.push((loadRates[i] * 100).toFixed(0) + "%");
+        }
+        if (prodRates.length === 0) {
+            desc += "100%";
+        } else {
+            // 去重并显示
+            const uniqueRates = [...new Set(prodRates)];
+            desc += uniqueRates.join("、");
+            if (!uniqueRates.includes("100%")) desc += "、达产期100%";
+            else desc += "、达产期";
+        }
+        
+        const el = document.getElementById("loadRateDesc");
+        if (el) el.textContent = desc + "（计算期共" + totalYears + "年）";
+        
+        // 更新总表负荷率备注
+        const tblLoad = document.getElementById("tbl_loadRate");
+        if (tblLoad) {
+            const rates = loadRates.slice(constructionPeriod, Math.min(constructionPeriod + 3, totalYears));
+            tblLoad.textContent = rates.map(r => (r * 100).toFixed(0) + "%").join(", ") + (rates.length < operationPeriod ? ", ..." : "");
+        }
+    }
+
+    // ==================== 原材料费计算 ====================
+    function addMaterialRow() {
+        const tbody = document.getElementById("materialBody");
+        const seq = tbody.children.length + 1;
+        const tr = document.createElement("tr");
+        tr.innerHTML = generateRowHtml("materialBody", seq, {}, []);
+        tbody.appendChild(tr);
+    }
+
+    function removeMaterialRow() {
+        const tbody = document.getElementById("materialBody");
+        if (tbody.children.length > 0) tbody.removeChild(tbody.lastChild);
+        calculateMaterialTotal();
+    }
+
+    function calculateMaterialTotal() {
+        const tbody = document.getElementById("materialBody");
+        const rows = tbody.querySelectorAll("tr");
+        let total = 0;
+        rows.forEach(row => {
+            const inputs = row.querySelectorAll("input");
+            const price = parseFloat(inputs[2]?.value) || 0;
+            const quantity = parseFloat(inputs[3]?.value) || 0;
+            const amount = price * quantity / 10000; // 转换为万元
+            const amountTd = row.querySelectorAll("td")[5];
+            if (amountTd) amountTd.textContent = formatNumber(amount);
+            total += amount;
+        });
+        document.getElementById("materialTotal").textContent = formatNumber(total);
+    }
+
+    function syncMaterialToTotal() {
+        const total = document.getElementById("materialTotal").textContent.replace(/,/g, "");
+        document.getElementById("tc_rawMaterial").value = parseFloat(total) || 0;
+        calculateTotalCost();
+        alert("✅ 已同步到总成本费用");
+    }
+
+    // ==================== 燃料动力费计算 ====================
+    function addFuelRow() {
+        const tbody = document.getElementById("fuelBody");
+        const seq = tbody.children.length + 1;
+        const tr = document.createElement("tr");
+        tr.innerHTML = generateRowHtml("fuelBody", seq, {}, []);
+        tbody.appendChild(tr);
+    }
+
+    function removeFuelRow() {
+        const tbody = document.getElementById("fuelBody");
+        if (tbody.children.length > 0) tbody.removeChild(tbody.lastChild);
+        calculateFuelTotal();
+    }
+
+    function calculateFuelTotal() {
+        const tbody = document.getElementById("fuelBody");
+        const rows = tbody.querySelectorAll("tr");
+        let total = 0;
+        rows.forEach(row => {
+            const inputs = row.querySelectorAll("input");
+            const price = parseFloat(inputs[2]?.value) || 0;
+            const quantity = parseFloat(inputs[3]?.value) || 0;
+            const amount = price * quantity / 10000;
+            const amountTd = row.querySelectorAll("td")[5];
+            if (amountTd) amountTd.textContent = formatNumber(amount);
+            total += amount;
+        });
+        document.getElementById("fuelTotal").textContent = formatNumber(total);
+    }
+
+    function syncFuelToTotal() {
+        const total = document.getElementById("fuelTotal").textContent.replace(/,/g, "");
+        document.getElementById("tc_fuel").value = parseFloat(total) || 0;
+        calculateTotalCost();
+        alert("✅ 已同步到总成本费用");
+    }
+
+    // ==================== 固定资产折旧计算 ====================
+    function calculateDepreciation() {
+        const originalValue = parseFloat(document.getElementById("dep_originalValue").value) || 0;
+        const residualRate = parseFloat(document.getElementById("dep_residualRate").value) || 0.05;
+        const years = parseInt(document.getElementById("dep_years").value) || 20;
+        const method = document.getElementById("dep_method").value;
+
+        document.getElementById("dep_resultOriginal").textContent = formatNumber(originalValue);
+        document.getElementById("dep_resultRate").textContent = (residualRate * 100).toFixed(2) + "%";
+        const residualValue = originalValue * residualRate;
+        document.getElementById("dep_resultResidual").textContent = formatNumber(residualValue);
+        document.getElementById("dep_resultYears").textContent = years;
+
+        let annualDepreciation = 0;
+        let detailData = [];
+
+        if (method === "straight") {
+            annualDepreciation = Calculator.calculateDepreciation(originalValue, residualRate, years);
+            let bookValue = originalValue;
+            for (let i = 1; i <= years; i++) {
+                const dep = annualDepreciation;
+                bookValue -= dep;
+                detailData.push({ year: i, startValue: bookValue + dep, depreciation: dep, endValue: bookValue });
+            }
+        } else if (method === "double") {
+            detailData = Calculator.calculateDoubleDeclining(originalValue, residualRate, years);
+            annualDepreciation = detailData.length > 0 ? detailData[0].depreciation : 0;
+        } else if (method === "sum") {
+            detailData = Calculator.calculateSumOfYears(originalValue, residualRate, years);
+            annualDepreciation = detailData.length > 0 ? detailData[0].depreciation : 0;
+        }
+
+        document.getElementById("dep_resultAnnual").textContent = formatNumber(annualDepreciation);
+
+        // 填充明细表
+        const detailBody = document.getElementById("depDetailBody");
+        let detailHtml = "";
+        if (method === "straight") {
+            for (let i = 1; i <= years; i++) {
+                const startValue = originalValue - annualDepreciation * (i - 1);
+                const endValue = startValue - annualDepreciation;
+                detailHtml += `<tr>
+                    <td>第${i}年</td>
+                    <td class="num">${formatNumber(startValue)}</td>
+                    <td class="num">${formatNumber(annualDepreciation)}</td>
+                    <td class="num">${formatNumber(endValue)}</td>
+                    <td>直线法</td>
+                </tr>`;
+            }
+        } else {
+            detailData.forEach(d => {
+                detailHtml += `<tr>
+                    <td>第${d.year}年</td>
+                    <td class="num">${formatNumber(d.depreciation + d.bookValue)}</td>
+                    <td class="num">${formatNumber(d.depreciation)}</td>
+                    <td class="num">${formatNumber(d.bookValue)}</td>
+                    <td>${method === "double" ? "双倍余额递减法" : "年数总和法"}</td>
+                </tr>`;
+            });
+        }
+        detailBody.innerHTML = detailHtml;
+    }
+
+    function syncDepreciationToTotal() {
+        const annual = document.getElementById("dep_resultAnnual").textContent.replace(/,/g, "");
+        document.getElementById("tc_depreciation").value = parseFloat(annual) || 0;
+        calculateTotalCost();
+        alert("✅ 已同步到总成本费用");
+    }
+
+    // ==================== 无形资产摊销计算 ====================
+    function addAmortizationRow() {
+        const tbody = document.getElementById("amortizationBody");
+        const seq = tbody.children.length + 1;
+        const tr = document.createElement("tr");
+        tr.innerHTML = generateRowHtml("amortizationBody", seq, {}, []);
+        tbody.appendChild(tr);
+    }
+
+    function removeAmortizationRow() {
+        const tbody = document.getElementById("amortizationBody");
+        if (tbody.children.length > 0) tbody.removeChild(tbody.lastChild);
+        calculateAmortizationTotal();
+    }
+
+    function calculateAmortizationTotal() {
+        const tbody = document.getElementById("amortizationBody");
+        const rows = tbody.querySelectorAll("tr");
+        let total = 0;
+        rows.forEach(row => {
+            const inputs = row.querySelectorAll("input");
+            const originalValue = parseFloat(inputs[1]?.value) || 0;
+            const years = parseInt(inputs[2]?.value) || 1;
+            const annualAmount = years > 0 ? originalValue / years : 0;
+            const amountTd = row.querySelectorAll("td")[4];
+            if (amountTd) amountTd.textContent = formatNumber(annualAmount);
+            total += annualAmount;
+        });
+        document.getElementById("amortizationTotal").textContent = formatNumber(total);
+    }
+
+    function syncAmortizationToTotal() {
+        const total = document.getElementById("amortizationTotal").textContent.replace(/,/g, "");
+        document.getElementById("tc_amortization").value = parseFloat(total) || 0;
+        calculateTotalCost();
+        alert("✅ 已同步到总成本费用");
+    }
+
+    // ==================== 工资及福利费计算 ====================
+    function calculateSalary() {
+        const persons = parseInt(document.getElementById("sal_persons").value) || 0;
+        const avgSalary = parseFloat(document.getElementById("sal_avgSalary").value) || 0;
+        const welfareRate = parseFloat(document.getElementById("sal_welfareRate").value) || 0.14;
+
+        const totalSalary = persons * avgSalary;
+        const welfare = totalSalary * welfareRate;
+        const sum = totalSalary + welfare;
+
+        document.getElementById("sal_resultPersons").textContent = persons;
+        document.getElementById("sal_resultAvg").textContent = formatNumber(avgSalary);
+        document.getElementById("sal_resultTotal").textContent = formatNumber(totalSalary);
+        document.getElementById("sal_resultRate").textContent = (welfareRate * 100).toFixed(2) + "%";
+        document.getElementById("sal_resultWelfare").textContent = formatNumber(welfare);
+        document.getElementById("sal_resultSum").textContent = formatNumber(sum);
+    }
+
+    function syncSalaryToTotal() {
+        const sum = document.getElementById("sal_resultSum").textContent.replace(/,/g, "");
+        document.getElementById("tc_salary").value = parseFloat(sum) || 0;
+        calculateTotalCost();
+        alert("✅ 已同步到总成本费用");
+    }
+
+    // ==================== 营业收入、增值税及税金附加计算 ====================
+    function calculateRevenueTax() {
+        const annualRevenue = parseFloat(document.getElementById("rt_annualRevenue").value) || 0;
+        const vatRate = parseFloat(document.getElementById("rt_vatRate").value) || 0.13;
+        const surchargeRate = parseFloat(document.getElementById("rt_surchargeRate").value) || 0.12;
+        const inputVatRate = parseFloat(document.getElementById("rt_inputVatRate").value) || 0;
+        
+        const constructionPeriod = ProjectData.basic.constructionPeriod || 2;
+        const operationPeriod = ProjectData.basic.operationPeriod || 20;
+        const totalYears = constructionPeriod + operationPeriod;
+        
+        // 生成负荷率
+        let loadRates = ProjectData.revenue.loadRates || [];
+        if (loadRates.length === 0) {
+            for (let i = 0; i < constructionPeriod; i++) loadRates.push(0);
+            if (operationPeriod >= 2) { loadRates.push(0.6); loadRates.push(0.8); }
+            for (let i = 2; i < operationPeriod; i++) loadRates.push(1.0);
+        }
+        while (loadRates.length < totalYears) loadRates.push(1.0);
+        
+        // 生成表头
+        const theadRow = document.querySelector("#revenueTaxTable thead tr");
+        if (theadRow) {
+            let headerHtml = '<th class="w-240">项目</th>';
+            for (let y = 1; y <= totalYears; y++) {
+                headerHtml += `<th>第${y}年</th>`;
+            }
+            theadRow.innerHTML = headerHtml;
+        }
+        
+        // 生成数据行
+        const tbody = document.getElementById("revenueTaxBody");
+        if (!tbody) return;
+        
+        let rowsHtml = "";
+        
+        // 1. 生产负荷率
+        rowsHtml += `<tr><td class="text-left">生产负荷率</td>`;
+        for (let y = 0; y < totalYears; y++) {
+            const rateText = loadRates[y] === 0 ? "—" : (loadRates[y] * 100).toFixed(0) + "%";
+            rowsHtml += `<td class="num">${rateText}</td>`;
+        }
+        rowsHtml += `</tr>`;
+        
+        // 2. 营业收入
+        rowsHtml += `<tr><td class="text-left">营业收入</td>`;
+        for (let y = 0; y < totalYears; y++) {
+            const revenue = annualRevenue * loadRates[y];
+            rowsHtml += `<td class="num">${formatNumber(revenue)}</td>`;
+        }
+        rowsHtml += `</tr>`;
+        
+        // 3. 增值税（简化：销项税 - 进项税，或按收入×税率×(1-抵扣率)）
+        rowsHtml += `<tr><td class="text-left">增值税</td>`;
+        for (let y = 0; y < totalYears; y++) {
+            const revenue = annualRevenue * loadRates[y];
+            const vat = revenue * vatRate * (1 - inputVatRate);
+            rowsHtml += `<td class="num">${formatNumber(vat)}</td>`;
+        }
+        rowsHtml += `</tr>`;
+        
+        // 4. 税金及附加
+        rowsHtml += `<tr><td class="text-left">税金及附加</td>`;
+        for (let y = 0; y < totalYears; y++) {
+            const revenue = annualRevenue * loadRates[y];
+            const vat = revenue * vatRate * (1 - inputVatRate);
+            const surcharge = vat * surchargeRate;
+            rowsHtml += `<td class="num">${formatNumber(surcharge)}</td>`;
+        }
+        rowsHtml += `</tr>`;
+        
+        tbody.innerHTML = rowsHtml;
+    }
+    
+
+
+    // ==================== 资产折旧与摊销综合计算 ====================
+    function calculateAssetDep() {
+        const depOriginal = parseFloat(document.getElementById("ad_depOriginal").value) || 0;
+        const depResidualRate = parseFloat(document.getElementById("ad_depResidualRate").value) || 0.05;
+        const depYears = parseInt(document.getElementById("ad_depYears").value) || 20;
+        const depMethod = document.getElementById("ad_depMethod").value;
+        const amortOriginal = parseFloat(document.getElementById("ad_amortOriginal").value) || 0;
+        const amortYears = parseInt(document.getElementById("ad_amortYears").value) || 10;
+        const otherOriginal = parseFloat(document.getElementById("ad_otherOriginal").value) || 0;
+        const otherYears = parseInt(document.getElementById("ad_otherYears").value) || 5;
+        
+        const constructionPeriod = ProjectData.basic.constructionPeriod || 2;
+        const operationPeriod = ProjectData.basic.operationPeriod || 20;
+        const totalYears = constructionPeriod + operationPeriod;
+        
+        // 计算各年折旧
+        let depSeries = [];
+        if (depMethod === "straight") {
+            const annualDep = depOriginal > 0 && depYears > 0 ? depOriginal * (1 - depResidualRate) / depYears : 0;
+            for (let y = 1; y <= totalYears; y++) {
+                if (y <= constructionPeriod) depSeries.push(0);
+                else if (y - constructionPeriod <= depYears) depSeries.push(annualDep);
+                else depSeries.push(0);
+            }
+        } else if (depMethod === "double") {
+            const results = Calculator.calculateDoubleDeclining(depOriginal, depResidualRate, depYears);
+            for (let y = 1; y <= totalYears; y++) {
+                if (y <= constructionPeriod) depSeries.push(0);
+                else {
+                    const idx = y - constructionPeriod - 1;
+                    if (idx >= 0 && idx < results.length) depSeries.push(results[idx].depreciation);
+                    else depSeries.push(0);
+                }
+            }
+        } else if (depMethod === "sum") {
+            const results = Calculator.calculateSumOfYears(depOriginal, depResidualRate, depYears);
+            for (let y = 1; y <= totalYears; y++) {
+                if (y <= constructionPeriod) depSeries.push(0);
+                else {
+                    const idx = y - constructionPeriod - 1;
+                    if (idx >= 0 && idx < results.length) depSeries.push(results[idx].depreciation);
+                    else depSeries.push(0);
+                }
+            }
+        }
+        
+        // 计算各年无形资产摊销
+        const annualAmort = amortOriginal > 0 && amortYears > 0 ? amortOriginal / amortYears : 0;
+        let amortSeries = [];
+        for (let y = 1; y <= totalYears; y++) {
+            if (y <= constructionPeriod) amortSeries.push(0);
+            else if (y - constructionPeriod <= amortYears) amortSeries.push(annualAmort);
+            else amortSeries.push(0);
+        }
+        
+        // 计算各年其他资产摊销
+        const annualOther = otherOriginal > 0 && otherYears > 0 ? otherOriginal / otherYears : 0;
+        let otherSeries = [];
+        for (let y = 1; y <= totalYears; y++) {
+            if (y <= constructionPeriod) otherSeries.push(0);
+            else if (y - constructionPeriod <= otherYears) otherSeries.push(annualOther);
+            else otherSeries.push(0);
+        }
+        
+        // 生成表头
+        const theadRow = document.querySelector("#assetDepTable thead tr");
+        if (theadRow) {
+            let headerHtml = '<th class="w-200">项目</th>';
+            for (let y = 1; y <= totalYears; y++) {
+                headerHtml += `<th>第${y}年</th>`;
+            }
+            theadRow.innerHTML = headerHtml;
+        }
+        
+        // 生成数据行
+        const tbody = document.getElementById("assetDepBody");
+        if (tbody) {
+            let rowsHtml = "";
+            
+            // 固定资产折旧
+            rowsHtml += `<tr><td class="text-left">固定资产折旧</td>`;
+            for (let y = 0; y < totalYears; y++) {
+                rowsHtml += `<td class="num">${formatNumber(depSeries[y])}</td>`;
+            }
+            rowsHtml += `</tr>`;
+            
+            // 无形资产摊销
+            rowsHtml += `<tr><td class="text-left">无形资产摊销</td>`;
+            for (let y = 0; y < totalYears; y++) {
+                rowsHtml += `<td class="num">${formatNumber(amortSeries[y])}</td>`;
+            }
+            rowsHtml += `</tr>`;
+            
+            // 其他资产摊销
+            rowsHtml += `<tr><td class="text-left">其他资产摊销</td>`;
+            for (let y = 0; y < totalYears; y++) {
+                rowsHtml += `<td class="num">${formatNumber(otherSeries[y])}</td>`;
+            }
+            rowsHtml += `</tr>`;
+            
+            tbody.innerHTML = rowsHtml;
+            
+            // 更新合计行
+            const tfootRow = document.querySelector("#assetDepTable tfoot tr");
+            if (tfootRow) {
+                let totalHtml = '<td class="text-left">折旧与摊销合计</td>';
+                for (let y = 0; y < totalYears; y++) {
+                    const total = depSeries[y] + amortSeries[y] + otherSeries[y];
+                    totalHtml += `<td class="num highlight">${formatNumber(total)}</td>`;
+                }
+                tfootRow.innerHTML = totalHtml;
+            }
+            
+            // 保存到全局以便同步
+            window._assetDepSeries = { dep: depSeries, amort: amortSeries, other: otherSeries };
+        }
+    }
+    
+    function syncAssetDepToTotal() {
+        const depOriginal = parseFloat(document.getElementById("ad_depOriginal").value) || 0;
+        const depResidualRate = parseFloat(document.getElementById("ad_depResidualRate").value) || 0.05;
+        const depYears = parseInt(document.getElementById("ad_depYears").value) || 20;
+        const depMethod = document.getElementById("ad_depMethod").value;
+        const amortOriginal = parseFloat(document.getElementById("ad_amortOriginal").value) || 0;
+        const amortYears = parseInt(document.getElementById("ad_amortYears").value) || 10;
+        const otherOriginal = parseFloat(document.getElementById("ad_otherOriginal").value) || 0;
+        const otherYears = parseInt(document.getElementById("ad_otherYears").value) || 5;
+        
+        // 计算正常年折旧（简化：取运营期第一年或平均）
+        let annualDep = 0;
+        if (depMethod === "straight") {
+            annualDep = depOriginal > 0 && depYears > 0 ? depOriginal * (1 - depResidualRate) / depYears : 0;
+        } else {
+            // 对于非直线法，取计算出的第一年折旧
+            if (depOriginal > 0) {
+                const results = depMethod === "double" 
+                    ? Calculator.calculateDoubleDeclining(depOriginal, depResidualRate, depYears)
+                    : Calculator.calculateSumOfYears(depOriginal, depResidualRate, depYears);
+                annualDep = results.length > 0 ? results[0].depreciation : 0;
+            }
+        }
+        const annualAmort = amortOriginal > 0 && amortYears > 0 ? amortOriginal / amortYears : 0;
+        const annualOther = otherOriginal > 0 && otherYears > 0 ? otherOriginal / otherYears : 0;
+        const totalAnnual = annualDep + annualAmort + annualOther;
+        
+        document.getElementById("tc_depreciation").value = annualDep.toFixed(2);
+        document.getElementById("tc_amortization").value = (annualAmort + annualOther).toFixed(2);
+        calculateTotalCost();
+        alert("✅ 已同步到总成本费用");
+    }
+    
+    // ==================== 导出Excel ====================
+    function exportExcel() {
+        collectAllData();
+        const wb = XLSX.utils.book_new();
+        wb.Props = {
+            Title: "成本费用估算表",
+            Subject: "可行性研究报告",
+            Author: "可研报告编写工具",
+            CreatedDate: new Date()
+        };
+
+        // 工作表1：总成本费用估算表
+        const totalCostData = [
+            ["总成本费用估算表（生产要素法）"],
+            [],
+            ["序号", "项目", "计算期（万元）", "备注"],
+            ["1", "外购原材料费", parseFloat(document.getElementById("tbl_rawMaterial").textContent.replace(/,/g, "")), "B7-1"],
+            ["2", "外购燃料及动力费", parseFloat(document.getElementById("tbl_fuel").textContent.replace(/,/g, "")), "B7-2"],
+            ["3", "工资及福利费", parseFloat(document.getElementById("tbl_salary").textContent.replace(/,/g, "")), "B7-5"],
+            ["4", "修理费", parseFloat(document.getElementById("tbl_repair").textContent.replace(/,/g, "")), "—"],
+            ["5", "其他费用", parseFloat(document.getElementById("tbl_other").textContent.replace(/,/g, "")), "—"],
+            ["6", "折旧费", parseFloat(document.getElementById("tbl_depreciation").textContent.replace(/,/g, "")), "B7-3"],
+            ["7", "摊销费", parseFloat(document.getElementById("tbl_amortization").textContent.replace(/,/g, "")), "B7-4"],
+            ["8", "利息支出", parseFloat(document.getElementById("tbl_interest").textContent.replace(/,/g, "")), "含长期借款利息"],
+            ["9", "总成本费用", parseFloat(document.getElementById("tbl_totalCost").textContent.replace(/,/g, "")), "= 1+2+3+4+5+6+7+8"],
+            ["10", "经营成本", parseFloat(document.getElementById("tbl_operatingCost").textContent.replace(/,/g, "")), "= 9 - 6 - 7 - 8"],
+        ];
+        const ws1 = XLSX.utils.aoa_to_sheet(totalCostData);
+        ws1["!cols"] = [{wch: 8}, {wch: 22}, {wch: 18}, {wch: 20}];
+        XLSX.utils.book_append_sheet(wb, ws1, "总成本费用B7");
+
+        // 工作表2：原材料费
+        const materialData = [["外购原材料费估算表（B7-1）"], [], ["序号", "原材料名称", "单位", "单价（元）", "年消耗量", "年金额（万元）", "备注"]];
+        const matRows = document.getElementById("materialBody").querySelectorAll("tr");
+        matRows.forEach((row, i) => {
+            const inputs = row.querySelectorAll("input");
+            const tds = row.querySelectorAll("td");
+            materialData.push([i + 1, inputs[0]?.value, inputs[1]?.value, parseFloat(inputs[2]?.value) || 0, parseFloat(inputs[3]?.value) || 0, parseFloat(tds[5]?.textContent) || 0, inputs[4]?.value]);
+        });
+        materialData.push(["", "", "", "", "合计", parseFloat(document.getElementById("materialTotal").textContent.replace(/,/g, "")), ""]);
+        const ws2 = XLSX.utils.aoa_to_sheet(materialData);
+        XLSX.utils.book_append_sheet(wb, ws2, "原材料B7-1");
+
+        // 工作表3：燃料动力费
+        const fuelData = [["外购燃料及动力费估算表（B7-2）"], [], ["序号", "燃料/动力名称", "单位", "单价（元）", "年消耗量", "年金额（万元）", "备注"]];
+        const fuelRows = document.getElementById("fuelBody").querySelectorAll("tr");
+        fuelRows.forEach((row, i) => {
+            const inputs = row.querySelectorAll("input");
+            const tds = row.querySelectorAll("td");
+            fuelData.push([i + 1, inputs[0]?.value, inputs[1]?.value, parseFloat(inputs[2]?.value) || 0, parseFloat(inputs[3]?.value) || 0, parseFloat(tds[5]?.textContent) || 0, inputs[4]?.value]);
+        });
+        fuelData.push(["", "", "", "", "合计", parseFloat(document.getElementById("fuelTotal").textContent.replace(/,/g, "")), ""]);
+        const ws3 = XLSX.utils.aoa_to_sheet(fuelData);
+        XLSX.utils.book_append_sheet(wb, ws3, "燃料动力B7-2");
+
+        // 工作表4：折旧费
+        const depData = [["固定资产折旧费估算表（B7-3）"], [], ["项目", "数值", "单位"]];
+        depData.push(["固定资产原值", parseFloat(document.getElementById("dep_resultOriginal").textContent.replace(/,/g, "")), "万元"]);
+        depData.push(["残值率", document.getElementById("dep_resultRate").textContent, "—"]);
+        depData.push(["预计残值", parseFloat(document.getElementById("dep_resultResidual").textContent.replace(/,/g, "")), "万元"]);
+        depData.push(["折旧年限", parseFloat(document.getElementById("dep_resultYears").textContent), "年"]);
+        depData.push(["年折旧额", parseFloat(document.getElementById("dep_resultAnnual").textContent.replace(/,/g, "")), "万元/年"]);
+        const ws4 = XLSX.utils.aoa_to_sheet(depData);
+        XLSX.utils.book_append_sheet(wb, ws4, "折旧费B7-3");
+
+        // 工作表5：摊销费
+        const amortData = [["无形资产摊销估算表（B7-4）"], [], ["序号", "无形资产名称", "原值（万元）", "摊销年限（年）", "年摊销额（万元）", "备注"]];
+        const amortRows = document.getElementById("amortizationBody").querySelectorAll("tr");
+        amortRows.forEach((row, i) => {
+            const inputs = row.querySelectorAll("input");
+            const tds = row.querySelectorAll("td");
+            amortData.push([i + 1, inputs[0]?.value, parseFloat(inputs[1]?.value) || 0, parseFloat(inputs[2]?.value) || 0, parseFloat(tds[4]?.textContent) || 0, inputs[3]?.value]);
+        });
+        amortData.push(["", "", "", "合计", parseFloat(document.getElementById("amortizationTotal").textContent.replace(/,/g, "")), ""]);
+        const ws5 = XLSX.utils.aoa_to_sheet(amortData);
+        XLSX.utils.book_append_sheet(wb, ws5, "摊销B7-4");
+
+        // 工作表6：工资福利
+        const salaryData = [["工资及福利费估算表（B7-5）"], [], ["项目", "数值", "单位"]];
+        salaryData.push(["定员人数", parseInt(document.getElementById("sal_resultPersons").textContent) || 0, "人"]);
+        salaryData.push(["人均年工资", parseFloat(document.getElementById("sal_resultAvg").textContent.replace(/,/g, "")), "万元/人·年"]);
+        salaryData.push(["工资总额", parseFloat(document.getElementById("sal_resultTotal").textContent.replace(/,/g, "")), "万元/年"]);
+        salaryData.push(["福利费率", document.getElementById("sal_resultRate").textContent, "—"]);
+        salaryData.push(["福利费", parseFloat(document.getElementById("sal_resultWelfare").textContent.replace(/,/g, "")), "万元/年"]);
+        salaryData.push(["工资及福利费合计", parseFloat(document.getElementById("sal_resultSum").textContent.replace(/,/g, "")), "万元/年"]);
+        const ws6 = XLSX.utils.aoa_to_sheet(salaryData);
+        XLSX.utils.book_append_sheet(wb, ws6, "工资福利B7-5");
+
+        // 工作表7：营业收入、增值税及附加
+        const rtData = [["营业收入、增值税及税金附加估算表"], []];
+        const rtThead = document.querySelectorAll("#revenueTaxTable thead tr th");
+        const rtHeaderRow = [];
+        rtThead.forEach(th => rtHeaderRow.push(th.textContent));
+        rtData.push(rtHeaderRow);
+        const rtRows = document.getElementById("revenueTaxBody").querySelectorAll("tr");
+        rtRows.forEach(row => {
+            const rowData = [];
+            row.querySelectorAll("td").forEach(td => rowData.push(td.textContent.trim()));
+            rtData.push(rowData);
+        });
+        const ws7 = XLSX.utils.aoa_to_sheet(rtData);
+        XLSX.utils.book_append_sheet(wb, ws7, "营收税负表");
+
+        // 工作表8：资产折旧与摊销综合表
+        const adData = [["资产折旧与摊销估算表（综合）"], []];
+        const adThead = document.querySelectorAll("#assetDepTable thead tr th");
+        const adHeaderRow = [];
+        adThead.forEach(th => adHeaderRow.push(th.textContent));
+        adData.push(adHeaderRow);
+        const adRows = document.getElementById("assetDepBody").querySelectorAll("tr");
+        adRows.forEach(row => {
+            const rowData = [];
+            row.querySelectorAll("td").forEach(td => rowData.push(td.textContent.trim()));
+            adData.push(rowData);
+        });
+        const adTfoot = document.querySelectorAll("#assetDepTable tfoot tr td");
+        const adTotalRow = [];
+        adTfoot.forEach(td => adTotalRow.push(td.textContent.trim()));
+        if (adTotalRow.length > 0) adData.push(adTotalRow);
+        const ws8 = XLSX.utils.aoa_to_sheet(adData);
+        XLSX.utils.book_append_sheet(wb, ws8, "折旧摊销综合");
+
+        XLSX.writeFile(wb, `成本费用估算表_${ProjectData.basic.projectName || "未命名"}.xlsx`);
+    }
+
+    // ==================== 工具函数 ====================
+    function formatNumber(num) {
+        if (num === null || num === undefined || isNaN(num)) return "0.00";
+        return num.toLocaleString("zh-CN", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    }
+
+    // ==================== 初始化 ====================
+    document.addEventListener("DOMContentLoaded", function() {
+        loadData();
+    });
+    </script>
+</body>
+</html>
