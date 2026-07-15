@@ -1,0 +1,2021 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>投资估算 - 可行性研究报告编写工具</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <style>
+        /* ============ 全局样式与变量 ============ */
+        :root {
+            --primary: #1a5f7a;
+            --secondary: #57c5b6;
+            --accent: #159895;
+            --bg: #f5f7fa;
+            --card-bg: #ffffff;
+            --text-main: #333333;
+            --text-sub: #666666;
+            --border: #e0e0e0;
+            --success: #52c41a;
+            --warning: #faad14;
+            --danger: #f5222d;
+            --shadow: 0 2px 8px rgba(0,0,0,0.08);
+            --shadow-hover: 0 4px 16px rgba(0,0,0,0.12);
+            --radius: 8px;
+            --radius-sm: 4px;
+            --transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+        html { font-size: 16px; scroll-behavior: smooth; }
+
+        body {
+            font-family: "Microsoft YaHei", "PingFang SC", "Hiragino Sans GB", sans-serif;
+            background: var(--bg);
+            color: var(--text-main);
+            line-height: 1.6;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* 数字字体 */
+        .num-font { font-family: "Consolas", "SFMono-Regular", "Roboto Mono", monospace; }
+
+        /* ============ 顶部导航栏 ============ */
+        .topbar {
+            height: 60px;
+            background: linear-gradient(90deg, var(--primary) 0%, #146a7a 100%);
+            color: #fff;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 24px;
+            position: fixed;
+            top: 0; left: 0; right: 0;
+            z-index: 1000;
+            box-shadow: 0 2px 8px rgba(26,95,122,0.3);
+        }
+        .topbar .brand {
+            display: flex; align-items: center; gap: 12px;
+            font-size: 1.2rem; font-weight: 600; letter-spacing: 0.5px;
+        }
+        .topbar .brand i { font-size: 1.4rem; opacity: 0.9; }
+        .topbar .actions { display: flex; gap: 12px; align-items: center; }
+        .topbar .actions button {
+            height: 36px; padding: 0 16px; border-radius: var(--radius-sm);
+            border: none; cursor: pointer; font-size: 0.9rem;
+            display: flex; align-items: center; gap: 6px;
+            transition: var(--transition); font-family: inherit;
+        }
+        .btn-export { background: var(--secondary); color: #fff; }
+        .btn-export:hover { background: #3db5a5; transform: translateY(-1px); }
+        .btn-save { background: rgba(255,255,255,0.15); color: #fff; border: 1px solid rgba(255,255,255,0.3) !important; }
+        .btn-save:hover { background: rgba(255,255,255,0.25); }
+
+        /* ============ 主体布局 ============ */
+        .main-wrapper { display: flex; flex: 1; margin-top: 60px; min-height: calc(100vh - 60px); }
+
+        /* ============ 左侧导航 ============ */
+        .sidebar {
+            width: 240px; background: var(--card-bg);
+            border-right: 1px solid var(--border);
+            padding: 16px 0; position: fixed; left: 0; top: 60px; bottom: 0;
+            overflow-y: auto; z-index: 900; transition: var(--transition);
+        }
+        .sidebar .nav-group { margin-bottom: 8px; }
+        .sidebar .nav-group-title {
+            padding: 8px 20px; font-size: 0.75rem; text-transform: uppercase;
+            color: var(--text-sub); font-weight: 600; letter-spacing: 1px;
+        }
+        .sidebar .nav-item {
+            display: flex; align-items: center; gap: 12px;
+            padding: 10px 20px; margin: 2px 12px; border-radius: var(--radius-sm);
+            color: var(--text-main); text-decoration: none; font-size: 0.9rem;
+            transition: var(--transition); cursor: pointer;
+        }
+        .sidebar .nav-item:hover { background: #eef6f5; color: var(--primary); }
+        .sidebar .nav-item.active { background: linear-gradient(90deg, rgba(87,197,182,0.15) 0%, rgba(21,152,149,0.08) 100%); color: var(--primary); font-weight: 600; border-left: 3px solid var(--secondary); }
+        .sidebar .nav-item i { width: 20px; text-align: center; font-size: 0.95rem; color: var(--text-sub); }
+        .sidebar .nav-item.active i { color: var(--primary); }
+
+        /* ============ 主内容区 ============ */
+        .content-area { flex: 1; margin-left: 240px; padding: 24px 28px; max-width: 1400px; }
+        .content-area.full { margin-left: 0; }
+
+        .page-header {
+            margin-bottom: 24px; padding-bottom: 16px;
+            border-bottom: 2px solid var(--primary);
+            display: flex; justify-content: space-between; align-items: flex-end;
+        }
+        .page-header h1 { font-size: 1.5rem; color: var(--primary); font-weight: 600; }
+        .page-header .subtitle { color: var(--text-sub); font-size: 0.85rem; margin-top: 4px; }
+
+        /* ============ 卡片 ============ */
+        .card {
+            background: var(--card-bg); border-radius: var(--radius);
+            box-shadow: var(--shadow); margin-bottom: 20px;
+            transition: var(--transition); overflow: hidden;
+        }
+        .card:hover { box-shadow: var(--shadow-hover); }
+        .card-header {
+            padding: 16px 20px; border-bottom: 1px solid var(--border);
+            display: flex; justify-content: space-between; align-items: center;
+            background: linear-gradient(90deg, rgba(26,95,122,0.03) 0%, rgba(87,197,182,0.03) 100%);
+        }
+        .card-header h2 { font-size: 1.1rem; color: var(--primary); font-weight: 600; display: flex; align-items: center; gap: 8px; }
+        .card-header h2 i { color: var(--secondary); }
+        .card-body { padding: 20px; }
+
+        /* ============ 表格 ============ */
+        .data-table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
+        .data-table thead th {
+            background: linear-gradient(180deg, var(--primary) 0%, #146a7a 100%);
+            color: #fff; padding: 12px 10px; text-align: center; font-weight: 500;
+            position: sticky; top: 0; white-space: nowrap;
+        }
+        .data-table tbody td {
+            padding: 10px; border-bottom: 1px solid var(--border);
+            text-align: center; vertical-align: middle;
+        }
+        .data-table tbody tr:nth-child(even) { background: #fafbfc; }
+        .data-table tbody tr:hover { background: #eef6f5; }
+        .data-table .td-left { text-align: left; padding-left: 16px; }
+        .data-table .td-right { text-align: right; padding-right: 16px; }
+        .data-table .total-row { font-weight: 700; background: rgba(87,197,182,0.08) !important; }
+        .data-table .subtotal-row { font-weight: 600; background: rgba(26,95,122,0.04) !important; }
+        .data-table .indent-1 { padding-left: 32px !important; }
+        .data-table .indent-2 { padding-left: 48px !important; }
+        .data-table .indent-3 { padding-left: 64px !important; }
+        .data-table input[type="number"] {
+            width: 120px; padding: 6px 8px; border: 1px solid var(--border);
+            border-radius: var(--radius-sm); font-family: inherit; font-size: 0.9rem;
+            text-align: right; transition: var(--transition);
+        }
+        .data-table input[type="number"]:focus {
+            outline: none; border-color: var(--secondary);
+            box-shadow: 0 0 0 3px rgba(87,197,182,0.15);
+        }
+        .data-table .unit { color: var(--text-sub); font-size: 0.8rem; margin-left: 2px; }
+        .data-table .readonly { background: #f5f5f5; cursor: not-allowed; }
+        .data-table .formula-note { color: var(--text-sub); font-size: 0.8rem; display: block; margin-top: 2px; }
+
+        /* ============ 表单元素 ============ */
+        .form-group { margin-bottom: 16px; }
+        .form-group label { display: block; font-size: 0.85rem; color: var(--text-sub); margin-bottom: 6px; font-weight: 500; }
+        .form-group input, .form-group select, .form-group textarea {
+            width: 100%; height: 40px; padding: 0 12px; border: 1px solid var(--border);
+            border-radius: var(--radius-sm); font-family: inherit; font-size: 0.95rem;
+            transition: var(--transition); background: var(--card-bg);
+        }
+        .form-group input:focus, .form-group select:focus, .form-group textarea:focus {
+            outline: none; border-color: var(--secondary); box-shadow: 0 0 0 3px rgba(87,197,182,0.15);
+        }
+        .form-group textarea { height: auto; padding: 10px 12px; min-height: 80px; resize: vertical; }
+        .form-row { display: flex; gap: 16px; flex-wrap: wrap; }
+        .form-row .form-group { flex: 1; min-width: 200px; }
+
+        /* ============ 按钮 ============ */
+        .btn {
+            display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+            height: 40px; padding: 0 20px; border-radius: var(--radius-sm); border: none;
+            font-family: inherit; font-size: 0.95rem; cursor: pointer; transition: var(--transition);
+        }
+        .btn-primary { background: linear-gradient(135deg, var(--primary) 0%, var(--accent) 100%); color: #fff; }
+        .btn-primary:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(26,95,122,0.3); }
+        .btn-secondary { background: var(--card-bg); color: var(--text-main); border: 1px solid var(--border); }
+        .btn-secondary:hover { border-color: var(--secondary); color: var(--primary); background: #eef6f5; }
+        .btn-sm { height: 32px; padding: 0 14px; font-size: 0.85rem; }
+        .btn-group { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 16px; }
+
+        /* ============ 标签页 ============ */
+        .tabs { display: flex; gap: 4px; border-bottom: 2px solid var(--border); margin-bottom: 20px; overflow-x: auto; }
+        .tab-btn {
+            padding: 10px 20px; border: none; background: none; color: var(--text-sub);
+            font-family: inherit; font-size: 0.9rem; cursor: pointer; white-space: nowrap;
+            border-bottom: 2px solid transparent; margin-bottom: -2px; transition: var(--transition);
+        }
+        .tab-btn:hover { color: var(--primary); }
+        .tab-btn.active { color: var(--primary); font-weight: 600; border-bottom-color: var(--secondary); }
+        .tab-panel { display: none; }
+        .tab-panel.active { display: block; animation: fadeIn 0.3s ease; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+
+        /* ============ 提示与标签 ============ */
+        .badge {
+            display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 0.75rem; font-weight: 600;
+        }
+        .badge-info { background: #e6f7ff; color: #1890ff; }
+        .badge-success { background: #f6ffed; color: var(--success); }
+        .badge-warning { background: #fffbe6; color: var(--warning); }
+        .alert { padding: 12px 16px; border-radius: var(--radius-sm); margin-bottom: 16px; display: flex; align-items: center; gap: 10px; font-size: 0.9rem; }
+        .alert-info { background: #e6f7ff; border: 1px solid #91d5ff; color: #096dd9; }
+        .alert-success { background: #f6ffed; border: 1px solid #b7eb8f; color: var(--success); }
+
+        /* ============ 汇总卡片 ============ */
+        .summary-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; margin-bottom: 20px; }
+        .summary-card {
+            background: var(--card-bg); border-radius: var(--radius); padding: 20px;
+            box-shadow: var(--shadow); border-left: 4px solid var(--secondary);
+            transition: var(--transition);
+        }
+        .summary-card:hover { transform: translateY(-2px); box-shadow: var(--shadow-hover); }
+        .summary-card .label { font-size: 0.85rem; color: var(--text-sub); margin-bottom: 6px; }
+        .summary-card .value { font-size: 1.5rem; font-weight: 700; color: var(--primary); }
+        .summary-card .value .unit { font-size: 0.9rem; font-weight: 400; color: var(--text-sub); margin-left: 4px; }
+        .summary-card .change { font-size: 0.8rem; margin-top: 4px; }
+
+        /* ============ 响应式 ============ */
+        @media (max-width: 1024px) {
+            .sidebar { transform: translateX(-100%); }
+            .sidebar.open { transform: translateX(0); box-shadow: 4px 0 20px rgba(0,0,0,0.15); }
+            .content-area { margin-left: 0; }
+            .menu-toggle { display: flex !important; }
+        }
+        @media (max-width: 768px) {
+            .summary-grid { grid-template-columns: repeat(2, 1fr); }
+            .data-table { font-size: 0.8rem; }
+            .data-table input[type="number"] { width: 80px; }
+        }
+        .menu-toggle {
+            display: none; align-items: center; justify-content: center;
+            width: 40px; height: 40px; border-radius: var(--radius-sm);
+            background: rgba(255,255,255,0.15); border: none; color: #fff; cursor: pointer;
+        }
+
+        /* ============ 辅助类 ============ */
+        .text-right { text-align: right !important; }
+        .text-left { text-align: left !important; }
+        .text-center { text-align: center !important; }
+        .mt-1 { margin-top: 4px; } .mt-2 { margin-top: 8px; } .mt-3 { margin-top: 12px; } .mt-4 { margin-top: 16px; }
+        .mb-1 { margin-bottom: 4px; } .mb-2 { margin-bottom: 8px; } .mb-3 { margin-bottom: 12px; } .mb-4 { margin-bottom: 16px; }
+        .hidden { display: none !important; }
+        .loading-overlay {
+            position: fixed; inset: 0; background: rgba(255,255,255,0.8); z-index: 9999;
+            display: flex; align-items: center; justify-content: center; flex-direction: column; gap: 12px;
+        }
+        .loading-overlay.hidden { display: none !important; }
+        .spinner {
+            width: 40px; height: 40px; border: 3px solid rgba(26,95,122,0.2);
+            border-top-color: var(--primary); border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        /* 打印样式 */
+        @media print {
+            .topbar, .sidebar, .btn-group, .tabs, .menu-toggle { display: none !important; }
+            .content-area { margin-left: 0; padding: 0; }
+            .card { box-shadow: none; border: 1px solid #ddd; page-break-inside: avoid; }
+        }
+
+        /* 可折叠分组 */
+        .fold-group { margin: 8px 0; border: 1px solid var(--border); border-radius: var(--radius-sm); overflow: hidden; }
+        .fold-group summary { 
+            padding: 10px 14px; background: #f8fafc; cursor: pointer; font-weight: 500; 
+            display: flex; align-items: center; justify-content: space-between;
+            list-style: none; user-select: none;
+        }
+        .fold-group summary::-webkit-details-marker { display: none; }
+        .fold-group summary::after { content: '\f107'; font-family: 'Font Awesome 6 Free'; font-weight: 900; color: var(--text-sub); transition: transform 0.2s; }
+        .fold-group[open] summary::after { transform: rotate(180deg); }
+        .fold-group summary:hover { background: #f0f4f8; }
+        .fold-group .fold-body { padding: 4px 0; }
+        .fold-group .fold-body tr td:first-child { padding-left: 28px !important; }
+        .fold-group small { color: var(--text-sub); font-size: 12px; font-weight: normal; margin-left: 8px; }
+        .fold-body table tbody td { padding: 8px 10px; border-bottom: 1px solid #f0f0f0; }
+        .fold-body table tbody tr:nth-child(even) { background: transparent; }
+        .fold-body table tbody tr:hover { background: #f5f7fa; }
+        .fold-body table tbody tr:last-child td { border-bottom: none; }
+        
+        /* 其他费用汇总行 */
+        .other-total-row { background: #f8fafc !important; }
+        .other-total-row td { font-weight: 600; }
+    </style>
+</head>
+<body>
+    <!-- 加载遮罩 -->
+    <div id="loadingOverlay" class="loading-overlay">
+        <div class="spinner"></div>
+        <div style="color:var(--primary);font-weight:500;">正在加载数据...</div>
+    </div>
+
+    <!-- 顶部导航栏 -->
+    <header class="topbar">
+        <div class="brand">
+            <button class="menu-toggle" onclick="toggleSidebar()" title="切换菜单"><i class="fas fa-bars"></i></button>
+            <i class="fas fa-calculator"></i>
+            <span>可研报告编写工具</span>
+        </div>
+        <div class="actions">
+            <button class="btn-save" onclick="saveData()" title="保存到本地">
+                <i class="fas fa-save"></i><span>保存</span>
+            </button>
+            <button class="btn-export" onclick="exportExcel()" title="导出Excel">
+                <i class="fas fa-file-excel"></i><span>导出Excel</span>
+            </button>
+        </div>
+    </header>
+
+    <div class="main-wrapper">
+        <!-- 左侧导航 -->
+        <aside class="sidebar" id="sidebar">
+            <div class="nav-group">
+                <div class="nav-group-title">核心模块</div>
+                <a class="nav-item" href="index.html"><i class="fas fa-home"></i>首页与参数</a>
+                <a class="nav-item" href="outline.html"><i class="fas fa-list-alt"></i>可研大纲</a>
+                <a class="nav-item active" href="investment.html"><i class="fas fa-coins"></i>投资估算</a>
+                <a class="nav-item" href="cost.html"><i class="fas fa-chart-pie"></i>成本费用</a>
+                <a class="nav-item" href="profit-cashflow.html"><i class="fas fa-money-bill-wave"></i>利润与现金流</a>
+                <a class="nav-item" href="balance.html"><i class="fas fa-balance-scale"></i>资产负债</a>
+                <a class="nav-item" href="indicators.html"><i class="fas fa-chart-line"></i>评价指标</a>
+            </div>
+            <div class="nav-group">
+                <div class="nav-group-title">数据</div>
+                <a class="nav-item" href="#" onclick="resetData();return false;"><i class="fas fa-trash-alt"></i>重置数据</a>
+                <a class="nav-item" href="#" onclick="loadDemoData();return false;"><i class="fas fa-vial"></i>加载示例</a>
+            </div>
+        </aside>
+
+        <!-- 主内容区 -->
+        <main class="content-area" id="contentArea">
+            <div class="page-header">
+                <div>
+                    <h1><i class="fas fa-coins" style="margin-right:10px;color:var(--secondary);"></i>投资估算</h1>
+                    <div class="subtitle">依据《建设项目经济评价方法与参数（第三版）》编制投资估算表</div>
+                </div>
+            </div>
+
+            <!-- 汇总指标 -->
+            <div class="summary-grid">
+                <div class="summary-card">
+                    <div class="label">建设投资</div>
+                    <div class="value num-font"><span id="sumConstruction">0</span><span class="unit">万元</span></div>
+                    <div style="font-size:12px;color:var(--text-sub);margin-top:4px;">
+                        工程<span id="sumEng">0</span> + 其他<span id="sumOther">0</span> + 预备<span id="sumReserve">0</span>
+                    </div>
+                </div>
+                <div class="summary-card">
+                    <div class="label">建设期融资费用</div>
+                    <div class="value num-font"><span id="sumInterest">0</span><span class="unit">万元</span></div>
+                </div>
+                <div class="summary-card">
+                    <div class="label">铺底流动资金</div>
+                    <div class="value num-font"><span id="sumWorking">0</span><span class="unit">万元</span></div>
+                </div>
+                <div class="summary-card" style="border-left-color:var(--primary);">
+                    <div class="label">项目总投资</div>
+                    <div class="value num-font" style="color:var(--accent);"><span id="sumTotal">0</span><span class="unit">万元</span></div>
+                    <div style="font-size:12px;color:var(--text-sub);margin-top:4px;">建设投资+融资费用+流动资金</div>
+                </div>
+            </div>
+
+            <!-- 标签页 -->
+            <div class="tabs">
+                <button class="tab-btn active" onclick="switchTab('tab-b1')">B1 建设投资（概算法）</button>
+                <button class="tab-btn" onclick="switchTab('tab-b2')">B2 建设投资（形成资产法）</button>
+                <button class="tab-btn" onclick="switchTab('tab-b3')">B3 建设期融资费用</button>
+                <button class="tab-btn" onclick="switchTab('tab-b4')">B4 铺底流动资金</button>
+                <button class="tab-btn" onclick="switchTab('tab-b5')">B5 投资计划与筹措</button>
+            </div>
+
+            <!-- ===== B1 建设投资估算表（概算法） ===== -->
+            <div id="tab-b1" class="tab-panel active">
+                <div class="card">
+                    <div class="card-header">
+                        <h2><i class="fas fa-table"></i>表 B1 建设投资估算表（概算法）</h2>
+                        <span class="badge badge-info">万元</span>
+                    </div>
+                    <div class="card-body">
+                        <div class="alert alert-info">
+                            <i class="fas fa-info-circle"></i>
+                            <span>概算法将建设投资分为工程费用、工程建设其他费用、预备费三部分。工程建设其他费用含20项可折叠分项。基本预备费 = (工程费用 + 其他费用) × 费率（默认6%~8%）。</span>
+                        </div>
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th style="width:40%;">序号 / 费用名称</th>
+                                    <th>估算金额</th>
+                                    <th>计算公式 / 备注</th>
+                                    <th>占建设投资比例</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr class="subtotal-row">
+                                    <td class="td-left"><strong>1</strong> 工程费用</td>
+                                    <td class="num-font" id="b1_eng">0</td>
+                                    <td class="td-left">建筑工程费 + 设备购置费 + 安装工程费</td>
+                                    <td id="b1_eng_pct" class="num-font">-</td>
+                                </tr>
+                                <tr>
+                                    <td class="td-left indent-1">1.1 建筑工程费</td>
+                                    <td><input type="number" id="b1_building" value="0" step="0.01" onchange="updateB1()"></td>
+                                    <td class="td-left">按工程量及单价估算</td>
+                                    <td class="num-font" id="b1_building_pct">-</td>
+                                </tr>
+                                <tr>
+                                    <td class="td-left indent-1">1.2 设备购置费</td>
+                                    <td><input type="number" id="b1_equipment" value="0" step="0.01" onchange="updateB1()"></td>
+                                    <td class="td-left">含设备原价、运杂费</td>
+                                    <td class="num-font" id="b1_equipment_pct">-</td>
+                                </tr>
+                                <tr>
+                                    <td class="td-left indent-1">1.3 安装工程费</td>
+                                    <td><input type="number" id="b1_install" value="0" step="0.01" onchange="updateB1()"></td>
+                                    <td class="td-left">按设备百分比或实物量估算</td>
+                                    <td class="num-font" id="b1_install_pct">-</td>
+                                </tr>
+                                <tr class="subtotal-row other-total-row">
+                                    <td class="td-left"><strong>2</strong> 工程建设其他费用合计</td>
+                                    <td class="num-font" id="b1_other">0</td>
+                                    <td class="td-left">以下各分项之和，自动汇总</td>
+                                    <td class="num-font" id="b1_other_pct">-</td>
+                                </tr>
+                                <!-- 分组1: 土地与前期费用 -->
+                                <tr><td colspan="4" style="padding:0;border:none;">
+                                    <details class="fold-group" open>
+                                        <summary>2.1 土地与前期费用 <small>建设用地费、勘察设计、咨询评价等</small></summary>
+                                        <div class="fold-body">
+                                            <table style="width:100%;border-collapse:collapse;">
+                                                <tr>
+                                                    <td class="td-left" style="width:40%;">2.1.1 建设用地费</td>
+                                                    <td><input type="number" id="b1_land" value="0" step="0.01" onchange="updateB1()"></td>
+                                                    <td class="td-left">土地征用及迁移补偿费</td>
+                                                    <td style="width:15%;">-</td>
+                                                </tr>
+                                                <tr>
+                                                    <td class="td-left">2.1.2 前期工作咨询费</td>
+                                                    <td><input type="number" id="b1_pre_consult" value="0" step="0.01" onchange="updateB1()"></td>
+                                                    <td class="td-left">项目建议书、可研报告编制等</td>
+                                                    <td>-</td>
+                                                </tr>
+                                                <tr>
+                                                    <td class="td-left">2.1.3 专项评价费</td>
+                                                    <td><input type="number" id="b1_special_eval" value="0" step="0.01" onchange="updateB1()"></td>
+                                                    <td class="td-left">环评、水保、节能、地震等评价</td>
+                                                    <td>-</td>
+                                                </tr>
+                                                <tr>
+                                                    <td class="td-left">2.1.4 勘察设计费</td>
+                                                    <td><input type="number" id="b1_survey_design" value="0" step="0.01" onchange="updateB1()"></td>
+                                                    <td class="td-left">工程勘察费、设计费</td>
+                                                    <td>-</td>
+                                                </tr>
+                                                <tr>
+                                                    <td class="td-left">2.1.5 施工图审查费</td>
+                                                    <td><input type="number" id="b1_drawing_review" value="0" step="0.01" onchange="updateB1()"></td>
+                                                    <td class="td-left">施工图审查、消防审查等</td>
+                                                    <td>-</td>
+                                                </tr>
+                                                <tr>
+                                                    <td class="td-left">2.1.6 造价咨询费</td>
+                                                    <td><input type="number" id="b1_cost_consult" value="0" step="0.01" onchange="updateB1()"></td>
+                                                    <td class="td-left">工程量清单、招标控制价、结算审核等</td>
+                                                    <td>-</td>
+                                                </tr>
+                                                <tr>
+                                                    <td class="td-left">2.1.7 BIM技术服务费</td>
+                                                    <td><input type="number" id="b1_bim" value="0" step="0.01" onchange="updateB1()"></td>
+                                                    <td class="td-left">BIM建模、咨询、技术服务</td>
+                                                    <td>-</td>
+                                                </tr>
+                                            </table>
+                                        </div>
+                                    </details>
+                                </td></tr>
+                                <!-- 分组2: 建设管理费用 -->
+                                <tr><td colspan="4" style="padding:0;border:none;">
+                                    <details class="fold-group" open>
+                                        <summary>2.2 建设管理费用 <small>建设管理、监理、招标代理等</small></summary>
+                                        <div class="fold-body">
+                                            <table style="width:100%;border-collapse:collapse;">
+                                                <tr>
+                                                    <td class="td-left" style="width:40%;">2.2.1 建设管理费</td>
+                                                    <td><input type="number" id="b1_mgmt" value="0" step="0.01" onchange="updateB1()"></td>
+                                                    <td class="td-left">建设单位管理费</td>
+                                                    <td style="width:15%;">-</td>
+                                                </tr>
+                                                <tr>
+                                                    <td class="td-left">2.2.2 监理费</td>
+                                                    <td><input type="number" id="b1_supervision" value="0" step="0.01" onchange="updateB1()"></td>
+                                                    <td class="td-left">工程建设监理费</td>
+                                                    <td>-</td>
+                                                </tr>
+                                                <tr>
+                                                    <td class="td-left">2.2.3 招标代理费</td>
+                                                    <td><input type="number" id="b1_bidding" value="0" step="0.01" onchange="updateB1()"></td>
+                                                    <td class="td-left">招标代理服务费</td>
+                                                    <td>-</td>
+                                                </tr>
+                                            </table>
+                                        </div>
+                                    </details>
+                                </td></tr>
+                                <!-- 分组3: 工程实施与保障费用 -->
+                                <tr><td colspan="4" style="padding:0;border:none;">
+                                    <details class="fold-group" open>
+                                        <summary>2.3 工程实施与保障费用 <small>场地准备、保险、基金、安全等</small></summary>
+                                        <div class="fold-body">
+                                            <table style="width:100%;border-collapse:collapse;">
+                                                <tr>
+                                                    <td class="td-left" style="width:40%;">2.3.1 场地准备及临时设施费</td>
+                                                    <td><input type="number" id="b1_site_prep" value="0" step="0.01" onchange="updateB1()"></td>
+                                                    <td class="td-left">场地平整、临时设施搭设与拆除</td>
+                                                    <td style="width:15%;">-</td>
+                                                </tr>
+                                                <tr>
+                                                    <td class="td-left">2.3.2 工程保险费</td>
+                                                    <td><input type="number" id="b1_insurance" value="0" step="0.01" onchange="updateB1()"></td>
+                                                    <td class="td-left">建筑/安装工程一切险、第三者责任险</td>
+                                                    <td>-</td>
+                                                </tr>
+                                                <tr>
+                                                    <td class="td-left">2.3.3 政府性基金</td>
+                                                    <td><input type="number" id="b1_gov_fund" value="0" step="0.01" onchange="updateB1()"></td>
+                                                    <td class="td-left">城市基础设施配套费、人防易地建设费等</td>
+                                                    <td>-</td>
+                                                </tr>
+                                                <tr>
+                                                    <td class="td-left">2.3.4 安全生产保障费</td>
+                                                    <td><input type="number" id="b1_safety" value="0" step="0.01" onchange="updateB1()"></td>
+                                                    <td class="td-left">安全评价、文明施工措施等</td>
+                                                    <td>-</td>
+                                                </tr>
+                                                <tr>
+                                                    <td class="td-left">2.3.5 文物勘探发掘费</td>
+                                                    <td><input type="number" id="b1_heritage" value="0" step="0.01" onchange="updateB1()"></td>
+                                                    <td class="td-left">考古勘探、发掘及文物保护</td>
+                                                    <td>-</td>
+                                                </tr>
+                                            </table>
+                                        </div>
+                                    </details>
+                                </td></tr>
+                                <!-- 分组4: 生产准备与专有技术 -->
+                                <tr><td colspan="4" style="padding:0;border:none;">
+                                    <details class="fold-group" open>
+                                        <summary>2.4 生产准备与专有技术 <small>生产准备、试验、试运转、专利等</small></summary>
+                                        <div class="fold-body">
+                                            <table style="width:100%;border-collapse:collapse;">
+                                                <tr>
+                                                    <td class="td-left" style="width:40%;">2.4.1 生产准备及开办费</td>
+                                                    <td><input type="number" id="b1_startup" value="0" step="0.01" onchange="updateB1()"></td>
+                                                    <td class="td-left">人员培训、提前进场、办公及生活家具购置</td>
+                                                    <td style="width:15%;">-</td>
+                                                </tr>
+                                                <tr>
+                                                    <td class="td-left">2.4.2 研究试验费</td>
+                                                    <td><input type="number" id="b1_research" value="0" step="0.01" onchange="updateB1()"></td>
+                                                    <td class="td-left">设计规定进行的试验、验证等</td>
+                                                    <td>-</td>
+                                                </tr>
+                                                <tr>
+                                                    <td class="td-left">2.4.3 联合试运转费</td>
+                                                    <td><input type="number" id="b1_trial_run" value="0" step="0.01" onchange="updateB1()"></td>
+                                                    <td class="td-left">设备联合试运转净支出</td>
+                                                    <td>-</td>
+                                                </tr>
+                                                <tr>
+                                                    <td class="td-left">2.4.4 专利及专有技术使用费</td>
+                                                    <td><input type="number" id="b1_patent" value="0" step="0.01" onchange="updateB1()"></td>
+                                                    <td class="td-left">技术转让、专利使用、专有技术许可</td>
+                                                    <td>-</td>
+                                                </tr>
+                                            </table>
+                                        </div>
+                                    </details>
+                                </td></tr>
+                                <tr>
+                                    <td class="td-left indent-1">2.5 其他</td>
+                                    <td><input type="number" id="b1_other_sub" value="0" step="0.01" onchange="updateB1()"></td>
+                                    <td class="td-left">未列明的其他费用</td>
+                                    <td>-</td>
+                                </tr>
+                                <tr class="subtotal-row">
+                                    <td class="td-left"><strong>3</strong> 预备费</td>
+                                    <td class="num-font" id="b1_reserve">0</td>
+                                    <td class="td-left">3.1 + 3.2</td>
+                                    <td class="num-font" id="b1_reserve_pct">-</td>
+                                </tr>
+                                <tr>
+                                    <td class="td-left indent-1">3.1 基本预备费</td>
+                                    <td class="num-font" id="b1_basic_reserve">0</td>
+                                    <td class="td-left">(工程费用 + 其他费用) × 费率 <input type="number" id="b1_basic_rate" value="5" step="0.1" style="width:60px;" onchange="updateB1()">%</td>
+                                    <td class="num-font" id="b1_basic_reserve_pct">-</td>
+                                </tr>
+                                <tr>
+                                    <td class="td-left indent-1">3.2 涨价预备费</td>
+                                    <td><input type="number" id="b1_price_reserve" value="0" step="0.01" onchange="updateB1()"></td>
+                                    <td class="td-left">按价格指数分年计算</td>
+                                    <td class="num-font" id="b1_price_reserve_pct">-</td>
+                                </tr>
+                                <tr class="total-row">
+                                    <td class="td-left"><strong>4</strong> 建设投资合计 (1+2+3)</td>
+                                    <td class="num-font" id="b1_total">0</td>
+                                    <td class="td-left">工程费用 + 其他费用 + 预备费</td>
+                                    <td class="num-font">100%</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                        <div class="btn-group">
+                            <button class="btn btn-secondary btn-sm" onclick="autoCalcB1()"><i class="fas fa-magic"></i> 自动计算预备费</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ===== B2 建设投资估算表（形成资产法） ===== -->
+            <div id="tab-b2" class="tab-panel">
+                <div class="card">
+                    <div class="card-header">
+                        <h2><i class="fas fa-table"></i>表 B2 建设投资估算表（形成资产法）</h2>
+                        <span class="badge badge-info">万元</span>
+                    </div>
+                    <div class="card-body">
+                        <div class="alert alert-info">
+                            <i class="fas fa-info-circle"></i>
+                            <span>形成资产法将建设投资按形成资产类别划分：固定资产、无形资产、其他资产及预备费。</span>
+                        </div>
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th style="width:40%;">序号 / 费用名称</th>
+                                    <th>估算金额</th>
+                                    <th>形成资产类型</th>
+                                    <th>备注</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr class="subtotal-row">
+                                    <td class="td-left"><strong>1</strong> 形成固定资产费用</td>
+                                    <td><input type="number" id="b2_fixed" value="0" step="0.01" onchange="updateB2()"></td>
+                                    <td>固定资产</td>
+                                    <td class="td-left">工程费用 + 固定资产其他费用</td>
+                                </tr>
+                                <tr>
+                                    <td class="td-left indent-1">1.1 工程费用</td>
+                                    <td class="num-font" id="b2_eng">0</td>
+                                    <td>固定资产</td>
+                                    <td class="td-left">同B1工程费用</td>
+                                </tr>
+                                <tr>
+                                    <td class="td-left indent-1">1.2 固定资产其他费用</td>
+                                    <td><input type="number" id="b2_fixed_other" value="0" step="0.01" onchange="updateB2()"></td>
+                                    <td>固定资产</td>
+                                    <td class="td-left">建设管理费、勘察设计费等</td>
+                                </tr>
+                                <tr class="subtotal-row">
+                                    <td class="td-left"><strong>2</strong> 形成无形资产费用</td>
+                                    <td><input type="number" id="b2_intangible" value="0" step="0.01" onchange="updateB2()"></td>
+                                    <td>无形资产</td>
+                                    <td class="td-left">土地使用权、专利、专有技术等</td>
+                                </tr>
+                                <tr>
+                                    <td class="td-left indent-1">2.1 土地使用权</td>
+                                    <td><input type="number" id="b2_land" value="0" step="0.01" onchange="updateB2()"></td>
+                                    <td>无形资产</td>
+                                    <td class="td-left">土地出让金</td>
+                                </tr>
+                                <tr>
+                                    <td class="td-left indent-1">2.2 专利及专有技术</td>
+                                    <td><input type="number" id="b2_patent" value="0" step="0.01" onchange="updateB2()"></td>
+                                    <td>无形资产</td>
+                                    <td class="td-left">技术转让费</td>
+                                </tr>
+                                <tr class="subtotal-row">
+                                    <td class="td-left"><strong>3</strong> 形成其他资产费用</td>
+                                    <td><input type="number" id="b2_other_asset" value="0" step="0.01" onchange="updateB2()"></td>
+                                    <td>其他资产</td>
+                                    <td class="td-left">生产准备费、开办费等</td>
+                                </tr>
+                                <tr class="subtotal-row">
+                                    <td class="td-left"><strong>4</strong> 预备费</td>
+                                    <td class="num-font" id="b2_reserve">0</td>
+                                    <td>-</td>
+                                    <td class="td-left">4.1 + 4.2</td>
+                                </tr>
+                                <tr>
+                                    <td class="td-left indent-1">4.1 基本预备费</td>
+                                    <td class="num-font" id="b2_basic_reserve">0</td>
+                                    <td>-</td>
+                                    <td class="td-left">(1+2+3) × 费率 <input type="number" id="b2_basic_rate" value="5" step="0.1" style="width:60px;" onchange="updateB2()">%</td>
+                                </tr>
+                                <tr>
+                                    <td class="td-left indent-1">4.2 涨价预备费</td>
+                                    <td><input type="number" id="b2_price_reserve" value="0" step="0.01" onchange="updateB2()"></td>
+                                    <td>-</td>
+                                    <td class="td-left">按价格指数分年计算</td>
+                                </tr>
+                                <tr class="total-row">
+                                    <td class="td-left"><strong>5</strong> 建设投资合计 (1+2+3+4)</td>
+                                    <td class="num-font" id="b2_total">0</td>
+                                    <td>-</td>
+                                    <td class="td-left">形成固定资产 + 无形资产 + 其他资产 + 预备费</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                        <div class="btn-group">
+                            <button class="btn btn-secondary btn-sm" onclick="autoCalcB2()"><i class="fas fa-magic"></i> 自动计算预备费</button>
+                            <button class="btn btn-secondary btn-sm" onclick="syncFromB1()"><i class="fas fa-sync"></i> 从B1同步数据</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ===== B3 建设期融资费用估算表 ===== -->
+            <div id="tab-b3" class="tab-panel">
+                <div class="card">
+                    <div class="card-header">
+                        <h2><i class="fas fa-table"></i>表 B3 建设期融资费用估算表</h2>
+                        <span class="badge badge-info">万元</span>
+                    </div>
+                    <div class="card-body">
+                        <div class="alert alert-info">
+                            <i class="fas fa-info-circle"></i>
+                            <span>建设期各年应计利息 = (年初借款本息累计 + 本年借款额/2) × 年利率。借款额按年中支用考虑。</span>
+                        </div>
+                        <div class="form-row mb-3">
+                            <div class="form-group">
+                                <label>年利率 (%)</label>
+                                <input type="number" id="b3_rate" value="5.0" step="0.1" onchange="updateB3()">
+                            </div>
+                            <div class="form-group">
+                                <label>建设期（年）</label>
+                                <input type="number" id="b3_period" value="2" min="1" max="10" onchange="updateB3()">
+                            </div>
+                        </div>
+                        <table class="data-table" id="b3_table">
+                            <thead>
+                                <tr>
+                                    <th>年份</th>
+                                    <th>年初借款<br>本息累计</th>
+                                    <th>本年借款</th>
+                                    <th>本年应计利息<br><span style="font-size:0.75rem;font-weight:400;">(年初+借款/2)×利率</span></th>
+                                    <th>年末借款<br>本息累计</th>
+                                    <th>借款利率</th>
+                                    <th>备注</th>
+                                </tr>
+                            </thead>
+                            <tbody id="b3_tbody">
+                                <!-- 动态生成 -->
+                            </tbody>
+                            <tfoot>
+                                <tr class="total-row">
+                                    <td class="td-left"><strong>合计</strong></td>
+                                    <td class="num-font" id="b3_sum_start">-</td>
+                                    <td class="num-font" id="b3_sum_loan">0</td>
+                                    <td class="num-font" id="b3_sum_interest">0</td>
+                                    <td class="num-font" id="b3_sum_end">0</td>
+                                    <td>-</td>
+                                    <td class="td-left">建设期利息合计</td>
+                                </tr>
+                            </tfoot>
+                        </table>
+                        <div class="btn-group">
+                            <button class="btn btn-secondary btn-sm" onclick="autoCalcB3()"><i class="fas fa-calculator"></i> 自动计算融资费用</button>
+                            <button class="btn btn-secondary btn-sm" onclick="evenLoanB3()"><i class="fas fa-balance-scale"></i> 均摊借款</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ===== B4 铺底流动资金估算表 ===== -->
+            <div id="tab-b4" class="tab-panel">
+                <div class="card">
+                    <div class="card-header">
+                        <h2><i class="fas fa-table"></i>表 B4 铺底流动资金估算表</h2>
+                        <span class="badge badge-info">万元</span>
+                    </div>
+                    <div class="card-body">
+                        <div class="alert alert-info">
+                            <i class="fas fa-info-circle"></i>
+                            <span>铺底流动资金采用分项详细估算法：流动资金 = 流动资产 - 流动负债。周转次数 = 360 / 周转天数。</span>
+                        </div>
+                        <div class="form-row mb-3">
+                            <div class="form-group">
+                                <label>估算方法</label>
+                                <select id="b4_method" onchange="toggleB4Method()">
+                                    <option value="detailed">分项详细估算法</option>
+                                    <option value="indicator">扩大指标估算法</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <!-- 分项详细估算法 -->
+                        <div id="b4_detailed">
+                            <table class="data-table">
+                                <thead>
+                                    <tr>
+                                        <th style="width:35%;">项目</th>
+                                        <th>最低周转天数</th>
+                                        <th>周转次数</th>
+                                        <th>金额</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr class="subtotal-row">
+                                        <td class="td-left"><strong>1</strong> 流动资产</td>
+                                        <td>-</td>
+                                        <td>-</td>
+                                        <td class="num-font" id="b4_current_asset">0</td>
+                                    </tr>
+                                    <tr>
+                                        <td class="td-left indent-1">1.1 应收账款</td>
+                                        <td><input type="number" id="b4_ar_days" value="30" step="1" onchange="updateB4()"></td>
+                                        <td class="num-font" id="b4_ar_turn">12</td>
+                                        <td><input type="number" id="b4_ar" value="0" step="0.01" onchange="updateB4()"></td>
+                                    </tr>
+                                    <tr>
+                                        <td class="td-left indent-1">1.2 存货</td>
+                                        <td>-</td>
+                                        <td>-</td>
+                                        <td class="num-font" id="b4_inventory">0</td>
+                                    </tr>
+                                    <tr>
+                                        <td class="td-left indent-2">1.2.1 原材料</td>
+                                        <td><input type="number" id="b4_raw_days" value="45" step="1" onchange="updateB4()"></td>
+                                        <td class="num-font" id="b4_raw_turn">8</td>
+                                        <td><input type="number" id="b4_raw" value="0" step="0.01" onchange="updateB4()"></td>
+                                    </tr>
+                                    <tr>
+                                        <td class="td-left indent-2">1.2.2 燃料</td>
+                                        <td><input type="number" id="b4_fuel_days" value="30" step="1" onchange="updateB4()"></td>
+                                        <td class="num-font" id="b4_fuel_turn">12</td>
+                                        <td><input type="number" id="b4_fuel" value="0" step="0.01" onchange="updateB4()"></td>
+                                    </tr>
+                                    <tr>
+                                        <td class="td-left indent-2">1.2.3 在产品</td>
+                                        <td><input type="number" id="b4_wip_days" value="10" step="1" onchange="updateB4()"></td>
+                                        <td class="num-font" id="b4_wip_turn">36</td>
+                                        <td><input type="number" id="b4_wip" value="0" step="0.01" onchange="updateB4()"></td>
+                                    </tr>
+                                    <tr>
+                                        <td class="td-left indent-2">1.2.4 产成品</td>
+                                        <td><input type="number" id="b4_fg_days" value="15" step="1" onchange="updateB4()"></td>
+                                        <td class="num-font" id="b4_fg_turn">24</td>
+                                        <td><input type="number" id="b4_fg" value="0" step="0.01" onchange="updateB4()"></td>
+                                    </tr>
+                                    <tr>
+                                        <td class="td-left indent-1">1.3 现金</td>
+                                        <td><input type="number" id="b4_cash_days" value="30" step="1" onchange="updateB4()"></td>
+                                        <td class="num-font" id="b4_cash_turn">12</td>
+                                        <td><input type="number" id="b4_cash" value="0" step="0.01" onchange="updateB4()"></td>
+                                    </tr>
+                                    <tr class="subtotal-row">
+                                        <td class="td-left"><strong>2</strong> 流动负债</td>
+                                        <td>-</td>
+                                        <td>-</td>
+                                        <td class="num-font" id="b4_current_liability">0</td>
+                                    </tr>
+                                    <tr>
+                                        <td class="td-left indent-1">2.1 应付账款</td>
+                                        <td><input type="number" id="b4_ap_days" value="30" step="1" onchange="updateB4()"></td>
+                                        <td class="num-font" id="b4_ap_turn">12</td>
+                                        <td><input type="number" id="b4_ap" value="0" step="0.01" onchange="updateB4()"></td>
+                                    </tr>
+                                    <tr>
+                                        <td class="td-left indent-1">2.2 预收账款</td>
+                                        <td><input type="number" id="b4_advance_days" value="15" step="1" onchange="updateB4()"></td>
+                                        <td class="num-font" id="b4_advance_turn">24</td>
+                                        <td><input type="number" id="b4_advance" value="0" step="0.01" onchange="updateB4()"></td>
+                                    </tr>
+                                    <tr class="total-row">
+                                        <td class="td-left"><strong>3</strong> 流动资金 (1-2)</td>
+                                        <td>-</td>
+                                        <td>-</td>
+                                        <td class="num-font" id="b4_working_capital">0</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <!-- 扩大指标法 -->
+                        <div id="b4_indicator" class="hidden">
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label>基数（万元）</label>
+                                    <input type="number" id="b4i_base" value="0" step="0.01" onchange="updateB4()">
+                                </div>
+                                <div class="form-group">
+                                    <label>流动资金率 (%)</label>
+                                    <input type="number" id="b4i_rate" value="15" step="0.1" onchange="updateB4()">
+                                </div>
+                                <div class="form-group">
+                                    <label>估算流动资金</label>
+                                    <input type="number" id="b4i_result" value="0" step="0.01" readonly class="readonly">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ===== B5 总投资使用计划与资金筹措表 ===== -->
+            <div id="tab-b5" class="tab-panel">
+                <div class="card">
+                    <div class="card-header">
+                        <h2><i class="fas fa-table"></i>表 B5 项目总投资使用计划与资金筹措表</h2>
+                        <span class="badge badge-info">万元</span>
+                    </div>
+                    <div class="card-body">
+                        <div class="alert alert-info">
+                            <i class="fas fa-info-circle"></i>
+                            <span>总投资 = 建设投资 + 建设期利息 + 流动资金。资金筹措分为资本金和借款两部分。</span>
+                        </div>
+                        <div class="form-row mb-3">
+                            <div class="form-group">
+                                <label>建设期（年）</label>
+                                <input type="number" id="b5_period" value="2" min="1" max="10" onchange="updateB5()">
+                            </div>
+                            <div class="form-group">
+                                <label>资本金比例 (%)</label>
+                                <input type="number" id="b5_capital_ratio" value="20" step="1" min="0" max="100" onchange="updateB5()">
+                            </div>
+                        </div>
+                        <table class="data-table" id="b5_table">
+                            <thead>
+                                <tr>
+                                    <th rowspan="2">序号</th>
+                                    <th rowspan="2">项目</th>
+                                    <th colspan="5" id="b5_year_headers">各年投资（万元）</th>
+                                    <th rowspan="2">合计</th>
+                                </tr>
+                                <tr id="b5_sub_headers">
+                                    <th>第1年</th>
+                                    <th>第2年</th>
+                                    <th>第3年</th>
+                                    <th>第4年</th>
+                                    <th>第5年</th>
+                                </tr>
+                            </thead>
+                            <tbody id="b5_tbody">
+                                <!-- 动态生成 -->
+                            </tbody>
+                        </table>
+                        <div class="btn-group">
+                            <button class="btn btn-secondary btn-sm" onclick="evenB5()"><i class="fas fa-balance-scale"></i> 均摊投资</button>
+                            <button class="btn btn-secondary btn-sm" onclick="syncB5FromOthers()"><i class="fas fa-sync"></i> 从其他表同步</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script>
+    // =========================================================
+    // 数据模型 ProjectData（严格遵循规范）
+    // =========================================================
+    const STORAGE_KEY = 'feasibility_study_data';
+
+    const ProjectData = {
+      basic: {
+        projectName: '',
+        projectType: '政府投资',
+        constructionPeriod: 2,
+        operationPeriod: 20,
+        benchmarkRate: 0.08,
+      },
+      investment: {
+        engineeringCost: 0,
+        otherCost: 0,
+        basicReserve: 0,
+        priceReserve: 0,
+        constructionInterest: 0,
+        workingCapital: 0,
+      },
+      financing: {
+        capitalRatio: 0.20,
+        loanAmount: 0,
+        loanRate: 0.05,
+        loanTerm: 10,
+        repaymentMethod: 'equal_payment',
+      },
+      revenue: {
+        annualRevenue: 0,
+        loadRates: [],
+        subsidyIncome: 0,
+        vatRate: 0.13,
+        surchargeRate: 0.12,
+        incomeTaxRate: 0.25,
+      },
+      cost: {
+        rawMaterial: 0,
+        fuel: 0,
+        salary: 0,
+        repair: 0,
+        other: 0,
+        depreciationMethod: 'straight',
+        depreciationYears: 20,
+        residualRate: 0.05,
+        amortization: 0,
+      }
+    };
+
+    // 投资估算模块专用数据（扩展存储）
+    const InvestmentData = {
+      b1: {
+        building: 0, equipment: 0, install: 0,
+        otherItems: {
+          land: 0,              // 建设用地费
+          mgmt: 0,              // 建设管理费
+          supervision: 0,       // 监理费
+          bidding: 0,           // 招标代理费
+          preConsult: 0,        // 前期工作咨询费
+          specialEval: 0,       // 专项评价费
+          surveyDesign: 0,      // 勘察设计费
+          drawingReview: 0,     // 施工图审查费
+          costConsult: 0,       // 造价咨询费
+          bim: 0,               // BIM技术服务费
+          sitePrep: 0,          // 场地准备及临时设施费
+          insurance: 0,         // 工程保险费
+          govFund: 0,           // 政府性基金
+          safety: 0,            // 安全生产保障费
+          heritage: 0,          // 文物勘探发掘费
+          startup: 0,           // 生产准备及开办费
+          research: 0,          // 研究试验费
+          trialRun: 0,          // 联合试运转费
+          patent: 0,            // 专利及专有技术使用费
+          other: 0              // 其他
+        },
+        basicRate: 6, priceReserve: 0
+      },
+      b2: {
+        fixedOther: 0, intangible: 0, land: 0, patent: 0,
+        otherAsset: 0, basicRate: 5, priceReserve: 0
+      },
+      b3: {
+        rate: 0.05, period: 2,
+        loans: [0, 0]  // 各年借款额
+      },
+      b4: {
+        method: 'detailed',
+        arDays: 30, rawDays: 45, fuelDays: 30, wipDays: 10, fgDays: 15, cashDays: 30,
+        apDays: 30, advanceDays: 15,
+        ar: 0, raw: 0, fuel: 0, wip: 0, fg: 0, cash: 0,
+        ap: 0, advance: 0,
+        indicatorBase: 0, indicatorRate: 15
+      },
+      b5: {
+        period: 2, capitalRatio: 20,
+        constructionInvest: [],  // 各年建设投资
+        interest: [],            // 各年建设期利息
+        working: []              // 各年流动资金
+      }
+    };
+
+    // =========================================================
+    // 核心计算函数 Calculator
+    // =========================================================
+    const Calculator = {
+      // 计算折旧费（直线法）
+      calculateDepreciation: (originalValue, residualRate, years) => {
+        if (years <= 0) return 0;
+        return originalValue * (1 - residualRate) / years;
+      },
+
+      // 计算建设期利息（各年应计利息 = (年初借款本息累计 + 本年借款额/2) × 年利率）
+      calculateConstructionInterest: (loans, rate) => {
+        const result = [];
+        let cumulative = 0;
+        for (let i = 0; i < loans.length; i++) {
+          const interest = (cumulative + loans[i] / 2) * rate;
+          result.push({
+            year: i + 1,
+            startPrincipal: cumulative,
+            loan: loans[i],
+            interest: interest,
+            endPrincipal: cumulative + loans[i] + interest
+          });
+          cumulative += loans[i] + interest;
+        }
+        return {
+          details: result,
+          totalInterest: result.reduce((s, r) => s + r.interest, 0),
+          totalLoan: loans.reduce((s, v) => s + v, 0),
+          finalPrincipal: cumulative
+        };
+      },
+
+      // 等额还本付息（年金法）
+      calculateEqualPayment: (principal, rate, years) => {
+        if (rate === 0) return principal / years;
+        return principal * (rate * Math.pow(1 + rate, years)) / (Math.pow(1 + rate, years) - 1);
+      },
+
+      // 计算NPV
+      calculateNPV: (cashFlows, discountRate) => {
+        let npv = 0;
+        for (let t = 0; t < cashFlows.length; t++) {
+          npv += cashFlows[t] / Math.pow(1 + discountRate, t);
+        }
+        return npv;
+      },
+
+      // 计算IRR（牛顿迭代法）
+      calculateIRR: (cashFlows, guess = 0.1) => {
+        const maxIter = 100;
+        const epsilon = 1e-7;
+        let rate = guess;
+        for (let i = 0; i < maxIter; i++) {
+          let npv = 0, dNpv = 0;
+          for (let t = 0; t < cashFlows.length; t++) {
+            npv += cashFlows[t] / Math.pow(1 + rate, t);
+            dNpv -= t * cashFlows[t] / Math.pow(1 + rate, t + 1);
+          }
+          if (Math.abs(npv) < epsilon) return rate;
+          if (Math.abs(dNpv) < epsilon) break;
+          rate -= npv / dNpv;
+          if (rate < -1) rate = -0.99;
+        }
+        return null;
+      },
+
+      // 计算投资回收期
+      calculatePaybackPeriod: (cashFlows) => {
+        let cumulative = 0;
+        for (let t = 0; t < cashFlows.length; t++) {
+          cumulative += cashFlows[t];
+          if (cumulative >= 0) {
+            return t + (Math.abs(cumulative - cashFlows[t]) / cashFlows[t]);
+          }
+        }
+        return null;
+      },
+
+      // 流动资金周转次数 = 360 / 周转天数
+      turnoverTimes: (days) => {
+        return days > 0 ? 360 / days : 0;
+      },
+
+      // 流动资金分项 = 年费用 / 周转次数
+      workingCapitalItem: (annualCost, days) => {
+        const times = days > 0 ? 360 / days : 0;
+        return times > 0 ? annualCost / times : 0;
+      }
+    };
+
+    // =========================================================
+    // 本地存储操作
+    // =========================================================
+    function loadData() {
+      try {
+        const saved = localStorage.getItem(STORAGE_KEY);
+        if (saved) {
+          const parsed = JSON.parse(saved);
+          Object.assign(ProjectData.basic, parsed.basic || {});
+          Object.assign(ProjectData.investment, parsed.investment || {});
+          Object.assign(ProjectData.financing, parsed.financing || {});
+          Object.assign(ProjectData.revenue, parsed.revenue || {});
+          Object.assign(ProjectData.cost, parsed.cost || {});
+          if (parsed.investmentDetail) {
+            const savedB1 = parsed.investmentDetail.b1 || {};
+            // 兼容旧数据：如果存在旧版其他费用字段，迁移到新版结构
+            if (savedB1.otherItems === undefined) {
+              savedB1.otherItems = {
+                land: savedB1.land || 0,
+                mgmt: savedB1.mgmt || 0,
+                supervision: 0,
+                bidding: 0,
+                preConsult: 0,
+                specialEval: 0,
+                surveyDesign: savedB1.design || 0,
+                drawingReview: 0,
+                costConsult: 0,
+                bim: 0,
+                sitePrep: 0,
+                insurance: 0,
+                govFund: 0,
+                safety: 0,
+                heritage: 0,
+                startup: 0,
+                research: 0,
+                trialRun: 0,
+                patent: 0,
+                other: savedB1.otherSub || 0
+              };
+              if (savedB1.basicRate !== undefined) savedB1.basicRate = savedB1.basicRate;
+              else savedB1.basicRate = 6;
+            }
+            Object.assign(InvestmentData.b1, savedB1);
+            Object.assign(InvestmentData.b2, parsed.investmentDetail.b2 || {});
+            Object.assign(InvestmentData.b3, parsed.investmentDetail.b3 || {});
+            Object.assign(InvestmentData.b4, parsed.investmentDetail.b4 || {});
+            Object.assign(InvestmentData.b5, parsed.investmentDetail.b5 || {});
+          }
+        }
+      } catch (e) { console.warn('加载数据失败', e); }
+    }
+
+    function saveData() {
+      try {
+        const payload = {
+          ...ProjectData,
+          investmentDetail: InvestmentData
+        };
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
+        showToast('数据已保存到本地', 'success');
+      } catch (e) {
+        console.warn('保存数据失败', e);
+        showToast('保存失败：' + e.message, 'danger');
+      }
+    }
+
+    function resetData() {
+      if (!confirm('确定要重置所有数据吗？此操作不可恢复。')) return;
+      localStorage.removeItem(STORAGE_KEY);
+      location.reload();
+    }
+
+    function loadDemoData() {
+      if (!confirm('加载示例数据将覆盖当前数据，是否继续？')) return;
+      InvestmentData.b1 = {
+        building: 2500, equipment: 1800, install: 600,
+        otherItems: {
+          land: 300, mgmt: 120, supervision: 80, bidding: 50,
+          preConsult: 60, specialEval: 40, surveyDesign: 180,
+          drawingReview: 30, costConsult: 40, bim: 20,
+          sitePrep: 80, insurance: 30, govFund: 100, safety: 20, heritage: 0,
+          startup: 50, research: 20, trialRun: 40, patent: 0, other: 70
+        },
+        basicRate: 6, priceReserve: 150
+      };
+      InvestmentData.b2 = {
+        fixedOther: 500, intangible: 300, land: 300, patent: 0,
+        otherAsset: 100, basicRate: 5, priceReserve: 150
+      };
+      InvestmentData.b3 = {
+        rate: 0.05, period: 2, loans: [3000, 2000]
+      };
+      InvestmentData.b4 = {
+        method: 'detailed',
+        arDays: 30, rawDays: 45, fuelDays: 30, wipDays: 10, fgDays: 15, cashDays: 30,
+        apDays: 30, advanceDays: 15,
+        ar: 200, raw: 150, fuel: 50, wip: 30, fg: 80, cash: 60,
+        ap: 120, advance: 50,
+        indicatorBase: 0, indicatorRate: 15
+      };
+      InvestmentData.b5 = {
+        period: 2, capitalRatio: 20,
+        constructionInvest: [3500, 2500],
+        interest: [75, 153.75],
+        working: [0, 0]
+      };
+      ProjectData.basic.constructionPeriod = 2;
+      ProjectData.basic.operationPeriod = 20;
+      ProjectData.investment.engineeringCost = 4900;
+      ProjectData.investment.otherCost = 800;
+      ProjectData.investment.basicReserve = 285;
+      ProjectData.investment.priceReserve = 150;
+      ProjectData.investment.constructionInterest = 228.75;
+      ProjectData.investment.workingCapital = 400;
+      ProjectData.financing.capitalRatio = 0.20;
+      ProjectData.financing.loanAmount = 5000;
+      ProjectData.financing.loanRate = 0.05;
+      ProjectData.financing.loanTerm = 10;
+      saveData();
+      location.reload();
+    }
+
+    // =========================================================
+    // 界面渲染与更新
+    // =========================================================
+    function renderInputs() {
+      // B1
+      const b1 = InvestmentData.b1;
+      setVal('b1_building', b1.building);
+      setVal('b1_equipment', b1.equipment);
+      setVal('b1_install', b1.install);
+      setVal('b1_basic_rate', b1.basicRate);
+      setVal('b1_price_reserve', b1.priceReserve);
+      const o = b1.otherItems || {};
+      setVal('b1_land', o.land);
+      setVal('b1_mgmt', o.mgmt);
+      setVal('b1_supervision', o.supervision);
+      setVal('b1_bidding', o.bidding);
+      setVal('b1_pre_consult', o.preConsult);
+      setVal('b1_special_eval', o.specialEval);
+      setVal('b1_survey_design', o.surveyDesign);
+      setVal('b1_drawing_review', o.drawingReview);
+      setVal('b1_cost_consult', o.costConsult);
+      setVal('b1_bim', o.bim);
+      setVal('b1_site_prep', o.sitePrep);
+      setVal('b1_insurance', o.insurance);
+      setVal('b1_gov_fund', o.govFund);
+      setVal('b1_safety', o.safety);
+      setVal('b1_heritage', o.heritage);
+      setVal('b1_startup', o.startup);
+      setVal('b1_research', o.research);
+      setVal('b1_trial_run', o.trialRun);
+      setVal('b1_patent', o.patent);
+      setVal('b1_other_sub', o.other);
+
+      // B2
+      const b2 = InvestmentData.b2;
+      setVal('b2_fixed_other', b2.fixedOther);
+      setVal('b2_intangible', b2.intangible);
+      setVal('b2_land', b2.land);
+      setVal('b2_patent', b2.patent);
+      setVal('b2_other_asset', b2.otherAsset);
+      setVal('b2_basic_rate', b2.basicRate);
+      setVal('b2_price_reserve', b2.priceReserve);
+
+      // B3
+      const b3 = InvestmentData.b3;
+      setVal('b3_rate', (b3.rate * 100).toFixed(1));
+      setVal('b3_period', b3.period);
+
+      // B4
+      const b4 = InvestmentData.b4;
+      document.getElementById('b4_method').value = b4.method;
+      setVal('b4_ar_days', b4.arDays);
+      setVal('b4_raw_days', b4.rawDays);
+      setVal('b4_fuel_days', b4.fuelDays);
+      setVal('b4_wip_days', b4.wipDays);
+      setVal('b4_fg_days', b4.fgDays);
+      setVal('b4_cash_days', b4.cashDays);
+      setVal('b4_ap_days', b4.apDays);
+      setVal('b4_advance_days', b4.advanceDays);
+      setVal('b4_ar', b4.ar);
+      setVal('b4_raw', b4.raw);
+      setVal('b4_fuel', b4.fuel);
+      setVal('b4_wip', b4.wip);
+      setVal('b4_fg', b4.fg);
+      setVal('b4_cash', b4.cash);
+      setVal('b4_ap', b4.ap);
+      setVal('b4_advance', b4.advance);
+      setVal('b4i_base', b4.indicatorBase);
+      setVal('b4i_rate', b4.indicatorRate);
+      toggleB4Method();
+
+      // B5
+      const b5 = InvestmentData.b5;
+      setVal('b5_period', b5.period);
+      setVal('b5_capital_ratio', b5.capitalRatio);
+    }
+
+    function setVal(id, val) {
+      const el = document.getElementById(id);
+      if (el) el.value = val;
+    }
+    function getVal(id) {
+      const el = document.getElementById(id);
+      return el ? parseFloat(el.value) || 0 : 0;
+    }
+    function setText(id, text) {
+      const el = document.getElementById(id);
+      if (el) el.textContent = text;
+    }
+    function fmt(n) {
+      if (n === undefined || n === null || isNaN(n)) return '0.00';
+      return n.toLocaleString('zh-CN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    }
+    function pct(n) {
+      if (!n || isNaN(n)) return '-';
+      return (n * 100).toFixed(1) + '%';
+    }
+
+    // =========================================================
+    // B1 建设投资（概算法）更新
+    // =========================================================
+    function updateB1() {
+      const b1 = InvestmentData.b1;
+      b1.building = getVal('b1_building');
+      b1.equipment = getVal('b1_equipment');
+      b1.install = getVal('b1_install');
+      b1.basicRate = getVal('b1_basic_rate');
+      b1.priceReserve = getVal('b1_price_reserve');
+
+      // 读取所有其他费用子项
+      const o = b1.otherItems;
+      o.land = getVal('b1_land');
+      o.mgmt = getVal('b1_mgmt');
+      o.supervision = getVal('b1_supervision');
+      o.bidding = getVal('b1_bidding');
+      o.preConsult = getVal('b1_pre_consult');
+      o.specialEval = getVal('b1_special_eval');
+      o.surveyDesign = getVal('b1_survey_design');
+      o.drawingReview = getVal('b1_drawing_review');
+      o.costConsult = getVal('b1_cost_consult');
+      o.bim = getVal('b1_bim');
+      o.sitePrep = getVal('b1_site_prep');
+      o.insurance = getVal('b1_insurance');
+      o.govFund = getVal('b1_gov_fund');
+      o.safety = getVal('b1_safety');
+      o.heritage = getVal('b1_heritage');
+      o.startup = getVal('b1_startup');
+      o.research = getVal('b1_research');
+      o.trialRun = getVal('b1_trial_run');
+      o.patent = getVal('b1_patent');
+      o.other = getVal('b1_other_sub');
+
+      // 自动汇总其他费用
+      const otherCost = Object.values(o).reduce((s, v) => s + (Number(v) || 0), 0);
+      b1.otherCost = otherCost;
+      setText('b1_other', fmt(otherCost));
+
+      const engineeringCost = b1.building + b1.equipment + b1.install;
+      const basicReserve = (engineeringCost + otherCost) * (b1.basicRate / 100);
+      const priceReserve = b1.priceReserve;
+      const total = engineeringCost + otherCost + basicReserve + priceReserve;
+
+      setText('b1_eng', fmt(engineeringCost));
+      setText('b1_basic_reserve', fmt(basicReserve));
+      setText('b1_reserve', fmt(basicReserve + priceReserve));
+      setText('b1_total', fmt(total));
+
+      setText('b1_eng_pct', total > 0 ? pct(engineeringCost / total) : '-');
+      setText('b1_building_pct', total > 0 ? pct(b1.building / total) : '-');
+      setText('b1_equipment_pct', total > 0 ? pct(b1.equipment / total) : '-');
+      setText('b1_install_pct', total > 0 ? pct(b1.install / total) : '-');
+      setText('b1_other_pct', total > 0 ? pct(otherCost / total) : '-');
+      setText('b1_reserve_pct', total > 0 ? pct((basicReserve + priceReserve) / total) : '-');
+      setText('b1_basic_reserve_pct', total > 0 ? pct(basicReserve / total) : '-');
+      setText('b1_price_reserve_pct', total > 0 ? pct(priceReserve / total) : '-');
+
+      // 同步到ProjectData
+      ProjectData.investment.engineeringCost = engineeringCost;
+      ProjectData.investment.otherCost = otherCost;
+      ProjectData.investment.basicReserve = basicReserve;
+      ProjectData.investment.priceReserve = priceReserve;
+      updateSummary();
+      autoSave();
+    }
+
+    function autoCalcB1() {
+      const b1 = InvestmentData.b1;
+      const engineeringCost = b1.building + b1.equipment + b1.install;
+      const otherCost = b1.otherCost || 0;
+      const basicReserve = (engineeringCost + otherCost) * (b1.basicRate / 100);
+      setText('b1_basic_reserve', fmt(basicReserve));
+      updateB1();
+      showToast('基本预备费已自动计算', 'success');
+    }
+
+    // =========================================================
+    // B2 建设投资（形成资产法）更新
+    // =========================================================
+    function updateB2() {
+      const b2 = InvestmentData.b2;
+      b2.fixedOther = getVal('b2_fixed_other');
+      b2.intangible = getVal('b2_intangible');
+      b2.land = getVal('b2_land');
+      b2.patent = getVal('b2_patent');
+      b2.otherAsset = getVal('b2_other_asset');
+      b2.basicRate = getVal('b2_basic_rate');
+      b2.priceReserve = getVal('b2_price_reserve');
+
+      // 自动汇总
+      b2.intangible = b2.land + b2.patent;
+      setVal('b2_intangible', b2.intangible);
+
+      const engineeringCost = ProjectData.investment.engineeringCost || 0;
+      const fixedCost = engineeringCost + b2.fixedOther;
+      const subtotal = fixedCost + b2.intangible + b2.otherAsset;
+      const basicReserve = subtotal * (b2.basicRate / 100);
+      const total = subtotal + basicReserve + b2.priceReserve;
+
+      setText('b2_eng', fmt(engineeringCost));
+      setText('b2_basic_reserve', fmt(basicReserve));
+      setText('b2_reserve', fmt(basicReserve + b2.priceReserve));
+      setText('b2_total', fmt(total));
+
+      updateSummary();
+      autoSave();
+    }
+
+    function autoCalcB2() {
+      updateB2();
+      showToast('预备费已自动计算', 'success');
+    }
+
+    function syncFromB1() {
+      const b1 = InvestmentData.b1;
+      const o = b1.otherItems || {};
+      // 将形成固定资产的其他费用汇总到B2固定资产其他费用
+      const fixedOther = (o.mgmt || 0) + (o.supervision || 0) + (o.bidding || 0) +
+        (o.preConsult || 0) + (o.specialEval || 0) + (o.surveyDesign || 0) +
+        (o.drawingReview || 0) + (o.costConsult || 0) + (o.bim || 0) +
+        (o.sitePrep || 0) + (o.insurance || 0) + (o.govFund || 0) +
+        (o.safety || 0) + (o.heritage || 0) + (o.other || 0);
+      InvestmentData.b2.fixedOther = fixedOther;
+      // 土地使用权归入无形资产
+      InvestmentData.b2.land = o.land || 0;
+      // 专利及专有技术归入无形资产
+      InvestmentData.b2.patent = (o.patent || 0);
+      // 生产准备、开办费等归入其他资产
+      InvestmentData.b2.otherAsset = (o.startup || 0) + (o.research || 0) + (o.trialRun || 0);
+      InvestmentData.b2.priceReserve = b1.priceReserve;
+      renderInputs();
+      updateB2();
+      showToast('已从B1同步数据', 'success');
+    }
+
+    // =========================================================
+    // B3 建设期融资费用更新
+    // =========================================================
+    function updateB3() {
+      const b3 = InvestmentData.b3;
+      b3.rate = getVal('b3_rate') / 100;
+      b3.period = parseInt(getVal('b3_period')) || 2;
+      if (b3.period < 1) b3.period = 1;
+      if (b3.period > 10) b3.period = 10;
+
+      // 确保 loans 数组长度正确
+      while (b3.loans.length < b3.period) b3.loans.push(0);
+      while (b3.loans.length > b3.period) b3.loans.pop();
+
+      renderB3Table();
+      autoSave();
+    }
+
+    function renderB3Table() {
+      const b3 = InvestmentData.b3;
+      const tbody = document.getElementById('b3_tbody');
+      const result = Calculator.calculateConstructionInterest(b3.loans, b3.rate);
+
+      let html = '';
+      for (let i = 0; i < b3.period; i++) {
+        const r = result.details[i] || { startPrincipal: 0, loan: 0, interest: 0, endPrincipal: 0 };
+        html += `<tr>
+          <td>第${i + 1}年</td>
+          <td class="num-font">${fmt(r.startPrincipal)}</td>
+          <td><input type="number" class="num-font" value="${b3.loans[i] || 0}" step="0.01" onchange="b3_setLoan(${i}, this.value)"></td>
+          <td class="num-font">${fmt(r.interest)}</td>
+          <td class="num-font">${fmt(r.endPrincipal)}</td>
+          <td class="num-font">${(b3.rate * 100).toFixed(1)}%</td>
+          <td class="td-left">(年初+借款/2)×利率</td>
+        </tr>`;
+      }
+      tbody.innerHTML = html;
+
+      setText('b3_sum_start', '-');
+      setText('b3_sum_loan', fmt(result.totalLoan));
+      setText('b3_sum_interest', fmt(result.totalInterest));
+      setText('b3_sum_end', fmt(result.finalPrincipal));
+
+      ProjectData.investment.constructionInterest = result.totalInterest;
+      updateSummary();
+    }
+
+    function b3_setLoan(idx, val) {
+      InvestmentData.b3.loans[idx] = parseFloat(val) || 0;
+      updateB3();
+    }
+
+    function autoCalcB3() {
+      const b3 = InvestmentData.b3;
+      const result = Calculator.calculateConstructionInterest(b3.loans, b3.rate);
+      ProjectData.investment.constructionInterest = result.totalInterest;
+      updateB3();
+      showToast('建设期利息已重新计算', 'success');
+    }
+
+    function evenLoanB3() {
+      const b3 = InvestmentData.b3;
+      const total = b3.loans.reduce((s, v) => s + v, 0);
+      if (total === 0) {
+        showToast('请先输入借款总额', 'warning');
+        return;
+      }
+      const even = total / b3.period;
+      for (let i = 0; i < b3.period; i++) b3.loans[i] = even;
+      updateB3();
+      showToast('借款已均摊到各年', 'success');
+    }
+
+    // =========================================================
+    // B4 铺底流动资金更新
+    // =========================================================
+    function toggleB4Method() {
+      const method = document.getElementById('b4_method').value;
+      InvestmentData.b4.method = method;
+      document.getElementById('b4_detailed').classList.toggle('hidden', method !== 'detailed');
+      document.getElementById('b4_indicator').classList.toggle('hidden', method !== 'indicator');
+    }
+
+    function updateB4() {
+      const b4 = InvestmentData.b4;
+      b4.method = document.getElementById('b4_method').value;
+      b4.arDays = getVal('b4_ar_days');
+      b4.rawDays = getVal('b4_raw_days');
+      b4.fuelDays = getVal('b4_fuel_days');
+      b4.wipDays = getVal('b4_wip_days');
+      b4.fgDays = getVal('b4_fg_days');
+      b4.cashDays = getVal('b4_cash_days');
+      b4.apDays = getVal('b4_ap_days');
+      b4.advanceDays = getVal('b4_advance_days');
+      b4.ar = getVal('b4_ar');
+      b4.raw = getVal('b4_raw');
+      b4.fuel = getVal('b4_fuel');
+      b4.wip = getVal('b4_wip');
+      b4.fg = getVal('b4_fg');
+      b4.cash = getVal('b4_cash');
+      b4.ap = getVal('b4_ap');
+      b4.advance = getVal('b4_advance');
+      b4.indicatorBase = getVal('b4i_base');
+      b4.indicatorRate = getVal('b4i_rate');
+
+      // 更新周转次数显示
+      setText('b4_ar_turn', Calculator.turnoverTimes(b4.arDays).toFixed(1));
+      setText('b4_raw_turn', Calculator.turnoverTimes(b4.rawDays).toFixed(1));
+      setText('b4_fuel_turn', Calculator.turnoverTimes(b4.fuelDays).toFixed(1));
+      setText('b4_wip_turn', Calculator.turnoverTimes(b4.wipDays).toFixed(1));
+      setText('b4_fg_turn', Calculator.turnoverTimes(b4.fgDays).toFixed(1));
+      setText('b4_cash_turn', Calculator.turnoverTimes(b4.cashDays).toFixed(1));
+      setText('b4_ap_turn', Calculator.turnoverTimes(b4.apDays).toFixed(1));
+      setText('b4_advance_turn', Calculator.turnoverTimes(b4.advanceDays).toFixed(1));
+
+      if (b4.method === 'detailed') {
+        const currentAsset = b4.ar + b4.raw + b4.fuel + b4.wip + b4.fg + b4.cash;
+        const currentLiability = b4.ap + b4.advance;
+        const working = currentAsset - currentLiability;
+        setText('b4_current_asset', fmt(currentAsset));
+        setText('b4_inventory', fmt(b4.raw + b4.fuel + b4.wip + b4.fg));
+        setText('b4_current_liability', fmt(currentLiability));
+        setText('b4_working_capital', fmt(working));
+        ProjectData.investment.workingCapital = working;
+      } else {
+        const working = b4.indicatorBase * (b4.indicatorRate / 100);
+        setVal('b4i_result', working);
+        ProjectData.investment.workingCapital = working;
+      }
+      updateSummary();
+      autoSave();
+    }
+
+    // =========================================================
+    // B5 投资计划与筹措更新
+    // =========================================================
+    function updateB5() {
+      const b5 = InvestmentData.b5;
+      b5.period = parseInt(getVal('b5_period')) || 2;
+      b5.capitalRatio = getVal('b5_capital_ratio');
+      if (b5.period < 1) b5.period = 1;
+      if (b5.period > 10) b5.period = 10;
+
+      while (b5.constructionInvest.length < b5.period) b5.constructionInvest.push(0);
+      while (b5.constructionInvest.length > b5.period) b5.constructionInvest.pop();
+      while (b5.interest.length < b5.period) b5.interest.push(0);
+      while (b5.interest.length > b5.period) b5.interest.pop();
+      while (b5.working.length < b5.period) b5.working.push(0);
+      while (b5.working.length > b5.period) b5.working.pop();
+
+      renderB5Table();
+      autoSave();
+    }
+
+    function renderB5Table() {
+      const b5 = InvestmentData.b5;
+      const period = b5.period;
+      const headers = document.getElementById('b5_sub_headers');
+      const yearHeaders = document.getElementById('b5_year_headers');
+      yearHeaders.colSpan = period;
+
+      let h = '';
+      for (let i = 0; i < period; i++) h += `<th>第${i + 1}年</th>`;
+      headers.innerHTML = h;
+
+      const totalInvest = b5.constructionInvest.reduce((s, v) => s + v, 0) +
+                          b5.interest.reduce((s, v) => s + v, 0) +
+                          b5.working.reduce((s, v) => s + v, 0);
+      const totalCapital = totalInvest * (b5.capitalRatio / 100);
+      const totalLoan = totalInvest - totalCapital;
+
+      let rows = [
+        { name: '1 建设投资', cls: 'subtotal-row', data: b5.constructionInvest, editable: true, type: 'ci' },
+        { name: '2 建设期利息', cls: 'subtotal-row', data: b5.interest, editable: true, type: 'in' },
+        { name: '3 流动资金', cls: 'subtotal-row', data: b5.working, editable: true, type: 'wk' },
+        { name: '4 项目总投资 (1+2+3)', cls: 'total-row', data: null, type: 'total' },
+        { name: '5 资金筹措', cls: 'subtotal-row', data: null, type: 'fin' },
+        { name: '  5.1 项目资本金', cls: '', data: null, type: 'cap' },
+        { name: '  5.2 借款', cls: '', data: null, type: 'loan' },
+      ];
+
+      let html = '';
+      for (const r of rows) {
+        html += `<tr class="${r.cls}">`;
+        html += `<td class="td-left">${r.name.split(' ')[0]}</td>`;
+        html += `<td class="td-left">${r.name.replace(/^\d+\s/, '')}</td>`;
+        let rowTotal = 0;
+        for (let i = 0; i < period; i++) {
+          let val = 0;
+          if (r.type === 'ci') val = b5.constructionInvest[i];
+          else if (r.type === 'in') val = b5.interest[i];
+          else if (r.type === 'wk') val = b5.working[i];
+          else if (r.type === 'total') val = (b5.constructionInvest[i] || 0) + (b5.interest[i] || 0) + (b5.working[i] || 0);
+          else if (r.type === 'cap') val = ((b5.constructionInvest[i] || 0) + (b5.interest[i] || 0) + (b5.working[i] || 0)) * (b5.capitalRatio / 100);
+          else if (r.type === 'loan') val = ((b5.constructionInvest[i] || 0) + (b5.interest[i] || 0) + (b5.working[i] || 0)) * (1 - b5.capitalRatio / 100);
+          rowTotal += val;
+
+          if (r.editable) {
+            html += `<td><input type="number" class="num-font" value="${val}" step="0.01" onchange="b5_setVal('${r.type}', ${i}, this.value)"></td>`;
+          } else {
+            html += `<td class="num-font">${fmt(val)}</td>`;
+          }
+        }
+        if (r.type === 'total') html += `<td class="num-font" style="font-weight:700;">${fmt(totalInvest)}</td>`;
+        else if (r.type === 'cap') html += `<td class="num-font">${fmt(totalCapital)}</td>`;
+        else if (r.type === 'loan') html += `<td class="num-font">${fmt(totalLoan)}</td>`;
+        else html += `<td class="num-font">${fmt(rowTotal)}</td>`;
+        html += '</tr>';
+      }
+      document.getElementById('b5_tbody').innerHTML = html;
+    }
+
+    function b5_setVal(type, idx, val) {
+      const v = parseFloat(val) || 0;
+      if (type === 'ci') InvestmentData.b5.constructionInvest[idx] = v;
+      if (type === 'in') InvestmentData.b5.interest[idx] = v;
+      if (type === 'wk') InvestmentData.b5.working[idx] = v;
+      updateB5();
+    }
+
+    function evenB5() {
+      const b5 = InvestmentData.b5;
+      const ci = ProjectData.investment.engineeringCost + ProjectData.investment.otherCost +
+                 ProjectData.investment.basicReserve + ProjectData.investment.priceReserve;
+      const interest = ProjectData.investment.constructionInterest;
+      const working = ProjectData.investment.workingCapital;
+      const total = ci + interest + working;
+
+      if (total === 0) { showToast('投资总额为0，无法均摊', 'warning'); return; }
+
+      for (let i = 0; i < b5.period; i++) {
+        b5.constructionInvest[i] = i === b5.period - 1 ? ci : 0;
+        b5.interest[i] = i === b5.period - 1 ? interest : 0;
+        b5.working[i] = i === b5.period - 1 ? working : 0;
+      }
+      // 更合理的均摊：将建设投资按年均摊，利息放在最后一年，流动资金放在最后一年
+      for (let i = 0; i < b5.period; i++) {
+        b5.constructionInvest[i] = ci / b5.period;
+        b5.interest[i] = 0;
+      }
+      b5.interest[b5.period - 1] = interest;
+      b5.working[b5.period - 1] = working;
+
+      updateB5();
+      showToast('投资已均摊到各年', 'success');
+    }
+
+    function syncB5FromOthers() {
+      const b5 = InvestmentData.b5;
+      const ci = ProjectData.investment.engineeringCost + ProjectData.investment.otherCost +
+                 ProjectData.investment.basicReserve + ProjectData.investment.priceReserve;
+      const interest = ProjectData.investment.constructionInterest;
+      const working = ProjectData.investment.workingCapital;
+
+      for (let i = 0; i < b5.period; i++) {
+        b5.constructionInvest[i] = ci / b5.period;
+        b5.interest[i] = 0;
+      }
+      b5.interest[b5.period - 1] = interest;
+      b5.working[b5.period - 1] = working;
+      updateB5();
+      showToast('已从其他表同步数据', 'success');
+    }
+
+    // =========================================================
+    // 汇总更新
+    // =========================================================
+    function updateSummary() {
+      const inv = ProjectData.investment;
+      const construction = inv.engineeringCost + inv.otherCost + inv.basicReserve + inv.priceReserve;
+      const total = construction + inv.constructionInterest + inv.workingCapital;
+      setText('sumConstruction', fmt(construction));
+      setText('sumInterest', fmt(inv.constructionInterest));
+      setText('sumWorking', fmt(inv.workingCapital));
+      setText('sumTotal', fmt(total));
+      // 更新总投资组成明细
+      const b1 = InvestmentData.b1;
+      const eng = b1.building + b1.equipment + b1.install;
+      const o = b1.otherItems || {};
+      const other = Object.values(o).reduce((s, v) => s + (Number(v) || 0), 0);
+      const reserve = (eng + other) * ((b1.basicRate || 6) / 100) + (b1.priceReserve || 0);
+      setText('sumEng', fmt(eng));
+      setText('sumOther', fmt(other));
+      setText('sumReserve', fmt(reserve));
+    }
+
+    // =========================================================
+    // 标签页切换
+    // =========================================================
+    function switchTab(id) {
+      document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+      document.getElementById(id).classList.add('active');
+      event.target.classList.add('active');
+      // 刷新对应表格
+      if (id === 'tab-b3') updateB3();
+      if (id === 'tab-b5') updateB5();
+    }
+
+    // =========================================================
+    // 侧边栏切换
+    // =========================================================
+    function toggleSidebar() {
+      document.getElementById('sidebar').classList.toggle('open');
+    }
+
+    // =========================================================
+    // 自动保存（防抖）
+    // =========================================================
+    let saveTimer = null;
+    function autoSave() {
+      if (saveTimer) clearTimeout(saveTimer);
+      saveTimer = setTimeout(() => {
+        try {
+          const payload = { ...ProjectData, investmentDetail: InvestmentData };
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
+        } catch (e) {}
+      }, 2000);
+    }
+
+    // =========================================================
+    // Toast 提示
+    // =========================================================
+    function showToast(msg, type = 'info') {
+      // 简单的console提示，也可扩展为DOM提示
+      console.log(`[${type}] ${msg}`);
+    }
+
+    // =========================================================
+    // 导出Excel
+    // =========================================================
+    function exportExcel() {
+      try {
+        const wb = XLSX.utils.book_new();
+        wb.Props = { Title: '投资估算表', Subject: '可行性研究', Author: '可研工具' };
+
+        // B1 概算法
+        const b1 = InvestmentData.b1;
+        const o = b1.otherItems || {};
+        const otherCost = Object.values(o).reduce((s, v) => s + (Number(v) || 0), 0);
+        const engineeringCost = b1.building + b1.equipment + b1.install;
+        const basicReserve = (engineeringCost + otherCost) * (b1.basicRate / 100);
+        const b1Data = [
+          ['表 B1', '建设投资估算表（概算法）', '', '单位：万元'],
+          ['序号', '费用名称', '估算金额', '计算公式/备注'],
+          ['1', '工程费用', fmt(engineeringCost), '建筑工程+设备+安装'],
+          ['1.1', '建筑工程费', fmt(b1.building), ''],
+          ['1.2', '设备购置费', fmt(b1.equipment), ''],
+          ['1.3', '安装工程费', fmt(b1.install), ''],
+          ['2', '工程建设其他费用', fmt(otherCost), ''],
+          ['2.1', '建设用地费', fmt(o.land || 0), ''],
+          ['2.2', '建设管理费', fmt(o.mgmt || 0), ''],
+          ['2.3', '监理费', fmt(o.supervision || 0), ''],
+          ['2.4', '招标代理费', fmt(o.bidding || 0), ''],
+          ['2.5', '前期工作咨询费', fmt(o.preConsult || 0), ''],
+          ['2.6', '专项评价费', fmt(o.specialEval || 0), ''],
+          ['2.7', '勘察设计费', fmt(o.surveyDesign || 0), ''],
+          ['2.8', '施工图审查费', fmt(o.drawingReview || 0), ''],
+          ['2.9', '造价咨询费', fmt(o.costConsult || 0), ''],
+          ['2.10', 'BIM技术服务费', fmt(o.bim || 0), ''],
+          ['2.11', '场地准备及临时设施费', fmt(o.sitePrep || 0), ''],
+          ['2.12', '工程保险费', fmt(o.insurance || 0), ''],
+          ['2.13', '政府性基金', fmt(o.govFund || 0), ''],
+          ['2.14', '安全生产保障费', fmt(o.safety || 0), ''],
+          ['2.15', '文物勘探发掘费', fmt(o.heritage || 0), ''],
+          ['2.16', '生产准备及开办费', fmt(o.startup || 0), ''],
+          ['2.17', '研究试验费', fmt(o.research || 0), ''],
+          ['2.18', '联合试运转费', fmt(o.trialRun || 0), ''],
+          ['2.19', '专利及专有技术使用费', fmt(o.patent || 0), ''],
+          ['2.20', '其他', fmt(o.other || 0), ''],
+          ['3', '预备费', fmt(basicReserve + b1.priceReserve), ''],
+          ['3.1', '基本预备费', fmt(basicReserve), `(工程费用+其他费用)×${b1.basicRate}%`],
+          ['3.2', '涨价预备费', fmt(b1.priceReserve), ''],
+          ['4', '建设投资合计', fmt(ProjectData.investment.engineeringCost + ProjectData.investment.otherCost + ProjectData.investment.basicReserve + ProjectData.investment.priceReserve), '1+2+3'],
+        ];
+        const ws1 = XLSX.utils.aoa_to_sheet(b1Data);
+        XLSX.utils.book_append_sheet(wb, ws1, 'B1概算法');
+
+        // B3 建设期融资费用
+        const b3 = InvestmentData.b3;
+        const b3Result = Calculator.calculateConstructionInterest(b3.loans, b3.rate);
+        const b3Data = [
+          ['表 B3', '建设期融资费用估算表', '', ''],
+          ['年份', '年初借款本息累计', '本年借款', '本年应计利息', '年末借款本息累计', '借款利率'],
+        ];
+        for (let i = 0; i < b3.period; i++) {
+          const r = b3Result.details[i];
+          b3Data.push([`第${i+1}年`, fmt(r.startPrincipal), fmt(r.loan), fmt(r.interest), fmt(r.endPrincipal), `${(b3.rate*100).toFixed(1)}%`]);
+        }
+        b3Data.push(['合计', '-', fmt(b3Result.totalLoan), fmt(b3Result.totalInterest), fmt(b3Result.finalPrincipal), '']);
+        const ws3 = XLSX.utils.aoa_to_sheet(b3Data);
+        XLSX.utils.book_append_sheet(wb, ws3, 'B3建设期融资费用');
+
+        // B4 铺底流动资金
+        const b4 = InvestmentData.b4;
+        const b4Data = [
+          ['表 B4', '流动资金估算表', '', '单位：万元'],
+          ['项目', '最低周转天数', '周转次数', '金额'],
+          ['1 流动资产', '', '', fmt(b4.ar + b4.raw + b4.fuel + b4.wip + b4.fg + b4.cash)],
+          ['  1.1 应收账款', b4.arDays, Calculator.turnoverTimes(b4.arDays).toFixed(1), fmt(b4.ar)],
+          ['  1.2 存货', '', '', fmt(b4.raw + b4.fuel + b4.wip + b4.fg)],
+          ['    1.2.1 原材料', b4.rawDays, Calculator.turnoverTimes(b4.rawDays).toFixed(1), fmt(b4.raw)],
+          ['    1.2.2 燃料', b4.fuelDays, Calculator.turnoverTimes(b4.fuelDays).toFixed(1), fmt(b4.fuel)],
+          ['    1.2.3 在产品', b4.wipDays, Calculator.turnoverTimes(b4.wipDays).toFixed(1), fmt(b4.wip)],
+          ['    1.2.4 产成品', b4.fgDays, Calculator.turnoverTimes(b4.fgDays).toFixed(1), fmt(b4.fg)],
+          ['  1.3 现金', b4.cashDays, Calculator.turnoverTimes(b4.cashDays).toFixed(1), fmt(b4.cash)],
+          ['2 流动负债', '', '', fmt(b4.ap + b4.advance)],
+          ['  2.1 应付账款', b4.apDays, Calculator.turnoverTimes(b4.apDays).toFixed(1), fmt(b4.ap)],
+          ['  2.2 预收账款', b4.advanceDays, Calculator.turnoverTimes(b4.advanceDays).toFixed(1), fmt(b4.advance)],
+          ['3 流动资金(1-2)', '', '', fmt(ProjectData.investment.workingCapital)],
+        ];
+        const ws4 = XLSX.utils.aoa_to_sheet(b4Data);
+        XLSX.utils.book_append_sheet(wb, ws4, 'B4铺底流动资金');
+
+        // B2 形成资产法
+        const b2 = InvestmentData.b2;
+        const b2_eng = ProjectData.investment.engineeringCost || 0;
+        const b2_subtotal = b2_eng + b2.fixedOther + b2.intangible + b2.otherAsset;
+        const b2_basic = b2_subtotal * (b2.basicRate / 100);
+        const b2Data = [
+          ['表 B2', '建设投资估算表（形成资产法）', '', '单位：万元'],
+          ['序号', '费用名称', '估算金额', '形成资产类型', '备注'],
+          ['1', '形成固定资产费用', fmt(b2_eng + b2.fixedOther), '固定资产', ''],
+          ['1.1', '工程费用', fmt(b2_eng), '固定资产', '同B1工程费用'],
+          ['1.2', '固定资产其他费用', fmt(b2.fixedOther), '固定资产', ''],
+          ['2', '形成无形资产费用', fmt(b2.intangible), '无形资产', ''],
+          ['2.1', '土地使用权', fmt(b2.land), '无形资产', ''],
+          ['2.2', '专利及专有技术', fmt(b2.patent), '无形资产', ''],
+          ['3', '形成其他资产费用', fmt(b2.otherAsset), '其他资产', ''],
+          ['4', '预备费', fmt(b2_basic + b2.priceReserve), '-', ''],
+          ['4.1', '基本预备费', fmt(b2_basic), '-', `(1+2+3)×${b2.basicRate}%`],
+          ['4.2', '涨价预备费', fmt(b2.priceReserve), '-', ''],
+          ['5', '建设投资合计', fmt(b2_subtotal + b2_basic + b2.priceReserve), '-', '1+2+3+4'],
+        ];
+        const ws2 = XLSX.utils.aoa_to_sheet(b2Data);
+        XLSX.utils.book_append_sheet(wb, ws2, 'B2形成资产法');
+
+        // B5 投资计划与筹措
+        const b5 = InvestmentData.b5;
+        const b5_header = ['项目'];
+        for (let i = 0; i < b5.period; i++) b5_header.push(`第${i+1}年`);
+        b5_header.push('合计');
+        const b5Data = [b5_header];
+        const sumArr = (arr) => arr.reduce((s, v) => s + (Number(v) || 0), 0);
+        const b5_ci = b5.constructionInvest || [];
+        const b5_int = b5.interest || [];
+        const b5_wk = b5.working || [];
+        const b5_total = [];
+        const b5_cap = [];
+        const b5_loan = [];
+        for (let i = 0; i < b5.period; i++) {
+          const t = (b5_ci[i] || 0) + (b5_int[i] || 0) + (b5_wk[i] || 0);
+          b5_total.push(t);
+          b5_cap.push(t * (b5.capitalRatio / 100));
+          b5_loan.push(t - b5_cap[i]);
+        }
+        const pushB5Row = (label, arr) => {
+          const row = [label];
+          for (let i = 0; i < b5.period; i++) row.push(fmt(arr[i] || 0));
+          row.push(fmt(sumArr(arr)));
+          b5Data.push(row);
+        };
+        pushB5Row('1 建设投资', b5_ci);
+        pushB5Row('2 建设期利息', b5_int);
+        pushB5Row('3 流动资金', b5_wk);
+        pushB5Row('4 总投资(1+2+3)', b5_total);
+        pushB5Row('5 资本金', b5_cap);
+        pushB5Row('6 借款', b5_loan);
+        const ws5 = XLSX.utils.aoa_to_sheet(b5Data);
+        XLSX.utils.book_append_sheet(wb, ws5, 'B5投资计划与筹措');
+
+        XLSX.writeFile(wb, '投资估算表.xlsx');
+        showToast('Excel导出成功', 'success');
+      } catch (e) {
+        console.error('导出失败', e);
+        showToast('导出失败：' + e.message, 'danger');
+      }
+    }
+
+    // =========================================================
+    // 初始化
+    // =========================================================
+    document.addEventListener('DOMContentLoaded', () => {
+      loadData();
+      renderInputs();
+      updateB1();
+      updateB2();
+      updateB3();
+      updateB4();
+      updateB5();
+      updateSummary();
+      document.getElementById('loadingOverlay').classList.add('hidden');
+
+      // 点击外部关闭侧边栏
+      document.addEventListener('click', (e) => {
+        const sb = document.getElementById('sidebar');
+        const toggle = document.querySelector('.menu-toggle');
+        if (window.innerWidth <= 1024 && sb.classList.contains('open') &&
+            !sb.contains(e.target) && !toggle.contains(e.target)) {
+          sb.classList.remove('open');
+        }
+      });
+    });
+    </script>
+</body>
+</html>
