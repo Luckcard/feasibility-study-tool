@@ -1,0 +1,1066 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>可行性研究报告编写工具 - 首页与参数设置</title>
+<style>
+/* ========== 基础样式与变量 ========== */
+:root {
+  --primary-color: #1a5f7a;
+  --secondary-color: #57c5b6;
+  --accent-color: #159895;
+  --bg-color: #f5f7fa;
+  --card-bg: #ffffff;
+  --text-main: #333333;
+  --text-secondary: #666666;
+  --border-color: #e0e0e0;
+  --success-color: #52c41a;
+  --warning-color: #faad14;
+  --danger-color: #f5222d;
+  --header-height: 60px;
+  --sidebar-width: 240px;
+  --font-family: "Microsoft YaHei", "PingFang SC", sans-serif;
+  --font-number: "Consolas", monospace;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: var(--font-family);
+  background-color: var(--bg-color);
+  color: var(--text-main);
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+/* ========== 顶部导航栏 ========== */
+.header {
+  position: fixed;
+  top: 0; left: 0; right: 0;
+  height: var(--header-height);
+  background: var(--primary-color);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 24px;
+  z-index: 1000;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+}
+.header .logo {
+  font-size: 18px;
+  font-weight: 600;
+  letter-spacing: 1px;
+}
+.header .nav-actions {
+  display: flex;
+  gap: 12px;
+}
+
+/* ========== 左侧菜单 ========== */
+.sidebar {
+  position: fixed;
+  top: var(--header-height);
+  left: 0;
+  bottom: 0;
+  width: var(--sidebar-width);
+  background: var(--card-bg);
+  border-right: 1px solid var(--border-color);
+  overflow-y: auto;
+  z-index: 900;
+  padding: 8px 0;
+}
+.menu-item {
+  display: block;
+  padding: 12px 24px;
+  color: var(--text-main);
+  text-decoration: none;
+  font-size: 14px;
+  border-left: 4px solid transparent;
+  transition: all 0.2s;
+  cursor: pointer;
+}
+.menu-item:hover {
+  background: #f0f9ff;
+  color: var(--primary-color);
+}
+.menu-item.active {
+  background: #e6f7ff;
+  color: var(--primary-color);
+  border-left-color: var(--primary-color);
+  font-weight: 600;
+}
+.menu-item .icon {
+  display: inline-block;
+  width: 20px;
+  text-align: center;
+  margin-right: 8px;
+}
+
+/* ========== 主内容区 ========== */
+.main-content {
+  margin-left: var(--sidebar-width);
+  margin-top: var(--header-height);
+  padding: 24px;
+  min-height: calc(100vh - var(--header-height));
+}
+.page-title {
+  font-size: 20px;
+  font-weight: 600;
+  color: var(--primary-color);
+  margin-bottom: 20px;
+  padding-bottom: 10px;
+  border-bottom: 2px solid var(--secondary-color);
+}
+
+/* ========== 卡片 ========== */
+.card {
+  background: var(--card-bg);
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+  margin-bottom: 24px;
+  overflow: hidden;
+}
+.card-header {
+  background: var(--primary-color);
+  color: #fff;
+  padding: 12px 20px;
+  font-size: 15px;
+  font-weight: 600;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.card-body {
+  padding: 20px;
+}
+
+/* ========== 表单元素 ========== */
+.form-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 16px 24px;
+}
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.form-group.full-width {
+  grid-column: 1 / -1;
+}
+.form-group label {
+  font-size: 13px;
+  color: var(--text-secondary);
+  font-weight: 500;
+}
+.form-group .required::after {
+  content: " *";
+  color: var(--danger-color);
+}
+.form-control {
+  height: 36px;
+  padding: 0 12px;
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  font-size: 14px;
+  font-family: var(--font-family);
+  color: var(--text-main);
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+.form-control:focus {
+  outline: none;
+  border-color: var(--secondary-color);
+  box-shadow: 0 0 0 3px rgba(87,197,182,0.2);
+}
+.form-control[type="number"] {
+  font-family: var(--font-number);
+  text-align: right;
+}
+select.form-control { appearance: auto; padding-right: 24px; }
+
+.form-hint {
+  font-size: 12px;
+  color: var(--text-secondary);
+  margin-top: 2px;
+}
+
+/* ========== 按钮 ========== */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 36px;
+  padding: 0 20px;
+  border-radius: 4px;
+  font-size: 14px;
+  font-family: var(--font-family);
+  cursor: pointer;
+  border: 1px solid transparent;
+  transition: all 0.2s;
+  font-weight: 500;
+  text-decoration: none;
+}
+.btn-primary {
+  background: var(--primary-color);
+  color: #fff;
+  border-color: var(--primary-color);
+}
+.btn-primary:hover {
+  background: #144a5e;
+  border-color: #144a5e;
+}
+.btn-secondary {
+  background: var(--secondary-color);
+  color: #fff;
+  border-color: var(--secondary-color);
+}
+.btn-secondary:hover {
+  background: #45a89a;
+  border-color: #45a89a;
+}
+.btn-default {
+  background: #fff;
+  color: var(--text-main);
+  border-color: var(--border-color);
+}
+.btn-default:hover {
+  background: #f5f5f5;
+  border-color: #d0d0d0;
+}
+.btn-success {
+  background: var(--success-color);
+  color: #fff;
+  border-color: var(--success-color);
+}
+.btn-success:hover { background: #44a814; }
+.btn-group { display: flex; gap: 10px; flex-wrap: wrap; }
+
+/* ========== 表格 ========== */
+.data-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+.data-table th,
+.data-table td {
+  border: 1px solid var(--border-color);
+  padding: 8px 12px;
+  text-align: center;
+}
+.data-table th {
+  background: var(--primary-color);
+  color: #fff;
+  font-weight: 600;
+}
+.data-table tr:nth-child(even) { background: #fafafa; }
+.data-table tr:hover { background: #f0f9ff; }
+.data-table td input {
+  width: 100%;
+  border: none;
+  background: transparent;
+  text-align: center;
+  font-family: var(--font-number);
+  font-size: 13px;
+  padding: 4px;
+}
+.data-table td input:focus { outline: none; background: #e6f7ff; }
+
+/* ========== 提示/消息 ========== */
+.alert {
+  padding: 10px 16px;
+  border-radius: 4px;
+  margin-bottom: 16px;
+  font-size: 13px;
+  display: none;
+}
+.alert.success { background: #f6ffed; border: 1px solid #b7eb8f; color: #389e0d; display: block; }
+.alert.error { background: #fff2f0; border: 1px solid #ffccc7; color: #cf1322; display: block; }
+.alert.info { background: #e6f7ff; border: 1px solid #91d5ff; color: #096dd9; display: block; }
+
+/* ========== 响应式 ========== */
+@media (max-width: 768px) {
+  .sidebar { width: 0; transform: translateX(-100%); }
+  .main-content { margin-left: 0; }
+  .form-grid { grid-template-columns: 1fr; }
+  .header { padding: 0 12px; }
+}
+
+/* ========== 辅助类 ========== */
+.text-right { text-align: right; }
+.text-center { text-align: center; }
+.font-num { font-family: var(--font-number); }
+.mb-0 { margin-bottom: 0; }
+.mt-16 { margin-top: 16px; }
+.w-100 { width: 100%; }
+</style>
+</head>
+<body>
+
+<!-- 顶部导航栏 -->
+<header class="header">
+  <div class="logo">📊 可行性研究报告编写工具</div>
+  <div class="nav-actions">
+    <button class="btn btn-success" onclick="App.saveData()">💾 保存数据</button>
+    <button class="btn btn-default" onclick="App.loadData()">📂 加载数据</button>
+    <button class="btn btn-default" onclick="App.resetData()">🔄 重置</button>
+  </div>
+</header>
+
+<!-- 左侧菜单 -->
+<nav class="sidebar">
+  <a href="index.html" class="menu-item active"><span class="icon">⚙️</span>首页与参数设置</a>
+  <a href="outline.html" class="menu-item"><span class="icon">📝</span>可研报告大纲</a>
+  <a href="investment.html" class="menu-item"><span class="icon">💰</span>投资估算</a>
+  <a href="cost.html" class="menu-item"><span class="icon">📉</span>成本费用</a>
+  <a href="profit-cashflow.html" class="menu-item"><span class="icon">📈</span>利润与现金流量</a>
+  <a href="balance.html" class="menu-item"><span class="icon">🏦</span>资产负债与偿债</a>
+  <a href="indicators.html" class="menu-item"><span class="icon">🎯</span>评价指标</a>
+</nav>
+
+<!-- 主内容区 -->
+<main class="main-content">
+  <div class="page-title">⚙️ 项目参数设置</div>
+  <div id="msgBox" class="alert"></div>
+
+  <!-- 1. 项目基本信息 -->
+  <section class="card" id="sec-basic">
+    <div class="card-header">
+      <span>📋 项目基本信息</span>
+    </div>
+    <div class="card-body">
+      <div class="form-grid">
+        <div class="form-group full-width">
+          <label class="required">项目名称</label>
+          <input type="text" class="form-control" id="basic_projectName" placeholder="请输入项目名称" value="">
+        </div>
+        <div class="form-group">
+          <label class="required">项目类型</label>
+          <select class="form-control" id="basic_projectType">
+            <option value="政府投资">政府投资项目</option>
+            <option value="企业投资">企业投资项目</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="required">建设期（年）</label>
+          <input type="number" class="form-control" id="basic_constructionPeriod" min="0" max="50" step="1" value="2">
+          <div class="form-hint">从项目开工到投产所需时间</div>
+        </div>
+        <div class="form-group">
+          <label class="required">运营期（年）</label>
+          <input type="number" class="form-control" id="basic_operationPeriod" min="1" max="100" step="1" value="20">
+          <div class="form-hint">项目投产后的运营年限</div>
+        </div>
+        <div class="form-group">
+          <label class="required">基准收益率（ic）</label>
+          <input type="number" class="form-control" id="basic_benchmarkRate" min="0" max="1" step="0.01" value="0.08">
+          <div class="form-hint">通常取8%~12%，如8%请填0.08</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 2. 投资估算 -->
+  <section class="card" id="sec-investment">
+    <div class="card-header">
+      <span>💰 投资估算（单位：万元）</span>
+    </div>
+    <div class="card-body">
+      <div class="form-grid">
+        <div class="form-group">
+          <label>工程费用</label>
+          <input type="number" class="form-control" id="investment_engineeringCost" min="0" step="0.01" value="0">
+        </div>
+        <div class="form-group">
+          <label>工程建设其他费用</label>
+          <input type="number" class="form-control" id="investment_otherCost" min="0" step="0.01" value="0">
+        </div>
+        <div class="form-group">
+          <label>基本预备费</label>
+          <input type="number" class="form-control" id="investment_basicReserve" min="0" step="0.01" value="0">
+          <div class="form-hint">通常为工程费用与其他费用之和的5%~10%</div>
+        </div>
+        <div class="form-group">
+          <label>涨价预备费</label>
+          <input type="number" class="form-control" id="investment_priceReserve" min="0" step="0.01" value="0">
+          <div class="form-hint">考虑建设期物价上涨因素</div>
+        </div>
+        <div class="form-group">
+          <label>建设期利息</label>
+          <input type="number" class="form-control" id="investment_constructionInterest" min="0" step="0.01" value="0">
+          <div class="form-hint">系统自动计算，也可手动调整</div>
+        </div>
+        <div class="form-group">
+          <label>流动资金</label>
+          <input type="number" class="form-control" id="investment_workingCapital" min="0" step="0.01" value="0">
+        </div>
+      </div>
+      <div class="mt-16">
+        <div style="display:flex;gap:16px;flex-wrap:wrap;justify-content:flex-end;align-items:center;">
+          <span style="font-size:14px;color:var(--text-secondary);">建设投资合计：<strong id="totalConstructionInvestment" style="color:var(--primary-color);font-size:16px;">0.00</strong> 万元</span>
+          <span style="font-size:14px;color:var(--text-secondary);">项目总投资：<strong id="totalProjectInvestment" style="color:var(--primary-color);font-size:16px;">0.00</strong> 万元</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 3. 资金筹措 -->
+  <section class="card" id="sec-financing">
+    <div class="card-header">
+      <span>🏦 资金筹措</span>
+    </div>
+    <div class="card-body">
+      <div class="form-grid">
+        <div class="form-group">
+          <label>资本金比例</label>
+          <input type="number" class="form-control" id="financing_capitalRatio" min="0" max="1" step="0.01" value="0.20">
+          <div class="form-hint">如20%请填0.20</div>
+        </div>
+        <div class="form-group">
+          <label>借款金额（万元）</label>
+          <input type="number" class="form-control" id="financing_loanAmount" min="0" step="0.01" value="0">
+        </div>
+        <div class="form-group">
+          <label>年利率</label>
+          <input type="number" class="form-control" id="financing_loanRate" min="0" max="1" step="0.01" value="0.05">
+          <div class="form-hint">如5%请填0.05</div>
+        </div>
+        <div class="form-group">
+          <label>还款期（年）</label>
+          <input type="number" class="form-control" id="financing_loanTerm" min="1" max="50" step="1" value="10">
+        </div>
+        <div class="form-group">
+          <label>还款方式</label>
+          <select class="form-control" id="financing_repaymentMethod">
+            <option value="equal_payment">等额本息</option>
+            <option value="equal_principal">等额本金</option>
+          </select>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 4. 收入与税金 -->
+  <section class="card" id="sec-revenue">
+    <div class="card-header">
+      <span>📈 收入与税金</span>
+    </div>
+    <div class="card-body">
+      <div class="form-grid">
+        <div class="form-group">
+          <label>正常年营业收入（万元）</label>
+          <input type="number" class="form-control" id="revenue_annualRevenue" min="0" step="0.01" value="0">
+        </div>
+        <div class="form-group">
+          <label>补贴收入（万元/年）</label>
+          <input type="number" class="form-control" id="revenue_subsidyIncome" min="0" step="0.01" value="0">
+        </div>
+        <div class="form-group">
+          <label>增值税率</label>
+          <input type="number" class="form-control" id="revenue_vatRate" min="0" max="1" step="0.01" value="0.13">
+          <div class="form-hint">如13%请填0.13</div>
+        </div>
+        <div class="form-group">
+          <label>附加税率（城建+教育）</label>
+          <input type="number" class="form-control" id="revenue_surchargeRate" min="0" max="1" step="0.01" value="0.12">
+          <div class="form-hint">通常为增值税的12%</div>
+        </div>
+        <div class="form-group">
+          <label>所得税率</label>
+          <input type="number" class="form-control" id="revenue_incomeTaxRate" min="0" max="1" step="0.01" value="0.25">
+          <div class="form-hint">一般企业25%</div>
+        </div>
+      </div>
+      <div class="mt-16">
+        <label style="font-size:13px;color:var(--text-secondary);margin-bottom:6px;display:block;">各年运营负荷率（%）</label>
+        <div class="form-hint" style="margin-bottom:8px;">按运营期每年填写，默认100%投产，可逐行修改。</div>
+        <div style="overflow-x:auto;">
+          <table class="data-table" id="loadRateTable">
+            <thead><tr id="loadRateHead"></tr></thead>
+            <tbody><tr id="loadRateBody"></tr></tbody>
+          </table>
+        </div>
+        <div class="btn-group mt-16">
+          <button class="btn btn-default" onclick="App.generateLoadRates()">按建设期/运营期重新生成</button>
+          <button class="btn btn-default" onclick="App.fillLoadRates(1)">全部设为100%</button>
+          <button class="btn btn-default" onclick="App.fillLoadRates(0.8)">全部设为80%</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 5. 成本费用 -->
+  <section class="card" id="sec-cost">
+    <div class="card-header">
+      <span>📉 成本费用（正常年，万元）</span>
+    </div>
+    <div class="card-body">
+      <div class="form-grid">
+        <div class="form-group">
+          <label>外购原材料费</label>
+          <input type="number" class="form-control" id="cost_rawMaterial" min="0" step="0.01" value="0">
+        </div>
+        <div class="form-group">
+          <label>外购燃料动力费</label>
+          <input type="number" class="form-control" id="cost_fuel" min="0" step="0.01" value="0">
+        </div>
+        <div class="form-group">
+          <label>工资及福利费</label>
+          <input type="number" class="form-control" id="cost_salary" min="0" step="0.01" value="0">
+        </div>
+        <div class="form-group">
+          <label>修理费</label>
+          <input type="number" class="form-control" id="cost_repair" min="0" step="0.01" value="0">
+        </div>
+        <div class="form-group">
+          <label>其他费用</label>
+          <input type="number" class="form-control" id="cost_other" min="0" step="0.01" value="0">
+        </div>
+        <div class="form-group">
+          <label>折旧方法</label>
+          <select class="form-control" id="cost_depreciationMethod">
+            <option value="straight">直线法（年限平均法）</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>折旧年限（年）</label>
+          <input type="number" class="form-control" id="cost_depreciationYears" min="1" max="100" step="1" value="20">
+        </div>
+        <div class="form-group">
+          <label>残值率</label>
+          <input type="number" class="form-control" id="cost_residualRate" min="0" max="1" step="0.01" value="0.05">
+          <div class="form-hint">如5%请填0.05</div>
+        </div>
+        <div class="form-group">
+          <label>摊销费（万元/年）</label>
+          <input type="number" class="form-control" id="cost_amortization" min="0" step="0.01" value="0">
+        </div>
+      </div>
+      <div class="mt-16">
+        <div style="display:flex;gap:16px;flex-wrap:wrap;justify-content:flex-end;align-items:center;">
+          <span style="font-size:14px;color:var(--text-secondary);">正常年经营成本（不含折旧摊销）：<strong id="annualOperatingCost" style="color:var(--primary-color);font-size:16px;">0.00</strong> 万元</span>
+          <span style="font-size:14px;color:var(--text-secondary);">正常年总成本费用：<strong id="annualTotalCost" style="color:var(--primary-color);font-size:16px;">0.00</strong> 万元</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 底部操作按钮 -->
+  <div class="btn-group" style="justify-content:center; margin-bottom:40px;">
+    <button class="btn btn-success" onclick="App.saveData()">💾 保存到本地存储</button>
+    <button class="btn btn-primary" onclick="App.autoCalc()">🧮 自动计算并更新</button>
+    <button class="btn btn-default" onclick="App.loadData()">📂 加载已存数据</button>
+    <button class="btn btn-default" onclick="App.exportJSON()">⬇️ 导出JSON</button>
+    <button class="btn btn-default" onclick="App.importJSON()">⬆️ 导入JSON</button>
+  </div>
+</main>
+
+<script>
+/**
+ * ============================================================
+ * 可研报告编写工具 - 数据模型与核心计算引擎
+ * 严格遵循《建设项目经济评价方法与参数（第三版）》
+ * ============================================================
+ */
+
+// 存储键名
+const STORAGE_KEY = 'feasibility_study_data';
+
+// 项目数据模型（默认初始值）
+const ProjectData = {
+  basic: {
+    projectName: '',
+    projectType: '政府投资',
+    constructionPeriod: 2,
+    operationPeriod: 20,
+    benchmarkRate: 0.08,
+  },
+  investment: {
+    engineeringCost: 0,
+    otherCost: 0,
+    basicReserve: 0,
+    priceReserve: 0,
+    constructionInterest: 0,
+    workingCapital: 0,
+  },
+  financing: {
+    capitalRatio: 0.20,
+    loanAmount: 0,
+    loanRate: 0.05,
+    loanTerm: 10,
+    repaymentMethod: 'equal_payment',
+  },
+  revenue: {
+    annualRevenue: 0,
+    loadRates: [],
+    subsidyIncome: 0,
+    vatRate: 0.13,
+    surchargeRate: 0.12,
+    incomeTaxRate: 0.25,
+  },
+  cost: {
+    rawMaterial: 0,
+    fuel: 0,
+    salary: 0,
+    repair: 0,
+    other: 0,
+    depreciationMethod: 'straight',
+    depreciationYears: 20,
+    residualRate: 0.05,
+    amortization: 0,
+  }
+};
+
+// 核心计算函数（遵循《建设项目经济评价方法与参数（第三版）》）
+const Calculator = {
+  /**
+   * 计算折旧费（直线法/年限平均法）
+   * 公式：年折旧额 = 固定资产原值 × (1 - 残值率) / 折旧年限
+   */
+  calculateDepreciation: (originalValue, residualRate, years) => {
+    if (!years || years <= 0) return 0;
+    return originalValue * (1 - residualRate) / years;
+  },
+
+  /**
+   * 计算建设期利息（简化模型）
+   * 各年应计利息 = (年初借款本息累计 + 本年借款额/2) × 年利率
+   * 假设借款在建设期内均匀投入
+   */
+  calculateConstructionInterest: (totalLoan, rate, constructionYears) => {
+    if (!constructionYears || constructionYears <= 0 || totalLoan <= 0) return 0;
+    let cumulativeInterest = 0;
+    let cumulativePrincipal = 0;
+    const yearlyLoan = totalLoan / constructionYears;
+    for (let year = 1; year <= constructionYears; year++) {
+      const interest = (cumulativePrincipal + yearlyLoan / 2) * rate;
+      cumulativeInterest += interest;
+      cumulativePrincipal += yearlyLoan;
+    }
+    return cumulativeInterest;
+  },
+
+  /**
+   * 等额还本付息（年金法）
+   * 公式：A = P × [i(1+i)^n] / [(1+i)^n - 1]
+   * 其中：A为每年还款额，P为贷款本金，i为年利率，n为还款期
+   */
+  calculateEqualPayment: (principal, rate, years) => {
+    if (!rate || rate <= 0) return principal / years;
+    if (!years || years <= 0) return principal;
+    const pow = Math.pow(1 + rate, years);
+    return principal * (rate * pow) / (pow - 1);
+  },
+
+  /**
+   * 等额本金还款
+   * 每年偿还本金 = P / n
+   * 第t年利息 = (P - 已还本金) × i
+   */
+  calculateEqualPrincipalSchedule: (principal, rate, years) => {
+    const yearlyPrincipal = principal / years;
+    const schedule = [];
+    let remaining = principal;
+    for (let t = 1; t <= years; t++) {
+      const interest = remaining * rate;
+      schedule.push({
+        year: t,
+        principal: yearlyPrincipal,
+        interest: interest,
+        payment: yearlyPrincipal + interest,
+        remaining: remaining - yearlyPrincipal,
+      });
+      remaining -= yearlyPrincipal;
+    }
+    return schedule;
+  },
+
+  /**
+   * 计算净现值 NPV
+   * 公式：NPV = Σ(CI - CO)t / (1 + ic)^t , t=0,1,2,...,n
+   * 其中t=0为初始投资年，t=1为第1年末
+   */
+  calculateNPV: (cashFlows, discountRate) => {
+    let npv = 0;
+    for (let t = 0; t < cashFlows.length; t++) {
+      npv += cashFlows[t] / Math.pow(1 + discountRate, t);
+    }
+    return npv;
+  },
+
+  /**
+   * 计算内部收益率 IRR（使用牛顿迭代法）
+   * 求解使 NPV = 0 的折现率
+   */
+  calculateIRR: (cashFlows, guess = 0.1) => {
+    const maxIterations = 100;
+    const epsilon = 1e-8;
+    let rate = guess;
+
+    for (let i = 0; i < maxIterations; i++) {
+      let npv = 0;
+      let dnpv = 0; // NPV对rate的导数
+      for (let t = 0; t < cashFlows.length; t++) {
+        const factor = Math.pow(1 + rate, t);
+        npv += cashFlows[t] / factor;
+        dnpv -= t * cashFlows[t] / (factor * (1 + rate));
+      }
+      if (Math.abs(dnpv) < epsilon) break;
+      const newRate = rate - npv / dnpv;
+      if (Math.abs(newRate - rate) < epsilon) return newRate;
+      rate = newRate;
+      if (rate < -1) rate = -0.99;
+      if (rate > 10) rate = 10;
+    }
+    return rate;
+  },
+
+  /**
+   * 计算投资回收期（静态）
+   * 公式：累计净现金流量开始出现正值的年份 - 1 + |上年累计净现金流量| / 当年净现金流量
+   */
+  calculatePaybackPeriod: (cashFlows) => {
+    let cumulative = 0;
+    for (let t = 0; t < cashFlows.length; t++) {
+      cumulative += cashFlows[t];
+      if (cumulative >= 0) {
+        const prevCumulative = cumulative - cashFlows[t];
+        return t + (Math.abs(prevCumulative) / cashFlows[t]);
+      }
+    }
+    return null; // 无法回收
+  },
+
+  /**
+   * 计算动态投资回收期（考虑折现）
+   */
+  calculateDynamicPaybackPeriod: (cashFlows, discountRate) => {
+    let cumulative = 0;
+    for (let t = 0; t < cashFlows.length; t++) {
+      const discounted = cashFlows[t] / Math.pow(1 + discountRate, t);
+      cumulative += discounted;
+      if (cumulative >= 0) {
+        const prevCumulative = cumulative - discounted;
+        return t + (Math.abs(prevCumulative) / discounted);
+      }
+    }
+    return null;
+  },
+
+  /**
+   * 计算总投资收益率 ROI
+   * 公式：ROI = 年息税前利润 / 总投资 × 100%
+   */
+  calculateROI: (ebit, totalInvestment) => {
+    if (!totalInvestment) return 0;
+    return ebit / totalInvestment;
+  },
+
+  /**
+   * 计算资本金净利润率 ROE
+   * 公式：ROE = 年净利润 / 资本金 × 100%
+   */
+  calculateROE: (netProfit, capital) => {
+    if (!capital) return 0;
+    return netProfit / capital;
+  }
+};
+
+// ============================================================
+// 应用逻辑控制器
+// ============================================================
+const App = {
+  data: null,
+
+  init() {
+    this.data = this.deepClone(ProjectData);
+    this.bindFormEvents();
+    this.generateLoadRates();
+    this.loadData();
+  },
+
+  // 深拷贝辅助函数
+  deepClone(obj) {
+    return JSON.parse(JSON.stringify(obj));
+  },
+
+  // 绑定表单事件：自动同步到数据模型
+  bindFormEvents() {
+    const sections = ['basic', 'investment', 'financing', 'revenue', 'cost'];
+    sections.forEach(sec => {
+      const keys = Object.keys(ProjectData[sec]);
+      keys.forEach(key => {
+        const el = document.getElementById(`${sec}_${key}`);
+        if (!el) return;
+        const eventType = el.tagName === 'SELECT' ? 'change' : 'input';
+        el.addEventListener(eventType, () => {
+          let val = el.value;
+          if (el.type === 'number') val = parseFloat(val) || 0;
+          this.data[sec][key] = val;
+          this.updateDerivedValues();
+        });
+      });
+    });
+  },
+
+  // 从数据模型回填表单
+  fillForm() {
+    const sections = ['basic', 'investment', 'financing', 'revenue', 'cost'];
+    sections.forEach(sec => {
+      const keys = Object.keys(this.data[sec]);
+      keys.forEach(key => {
+        const el = document.getElementById(`${sec}_${key}`);
+        if (!el) return;
+        if (key === 'loadRates') {
+          // 负荷率表格单独处理
+          this.renderLoadRates();
+          return;
+        }
+        el.value = this.data[sec][key];
+      });
+    });
+    this.updateDerivedValues();
+  },
+
+  // 生成负荷率表格（按建设期和运营期）
+  generateLoadRates() {
+    const construction = parseInt(this.data.basic.constructionPeriod) || 0;
+    const operation = parseInt(this.data.basic.operationPeriod) || 20;
+    const total = construction + operation;
+    const rates = [];
+    for (let i = 1; i <= total; i++) {
+      if (i <= construction) {
+        rates.push(0); // 建设期无产出
+      } else {
+        const opYear = i - construction;
+        // 投产第1年60%，第2年80%，之后100%
+        if (opYear === 1) rates.push(0.6);
+        else if (opYear === 2) rates.push(0.8);
+        else rates.push(1.0);
+      }
+    }
+    this.data.revenue.loadRates = rates;
+    this.renderLoadRates();
+  },
+
+  // 渲染负荷率表格
+  renderLoadRates() {
+    const rates = this.data.revenue.loadRates || [];
+    const headRow = document.getElementById('loadRateHead');
+    const bodyRow = document.getElementById('loadRateBody');
+    if (!headRow || !bodyRow) return;
+
+    const maxShow = Math.min(rates.length, 30); // 最多显示30列
+    let headHTML = '<th>年份</th>';
+    let bodyHTML = '<td>负荷率</td>';
+
+    for (let i = 0; i < maxShow; i++) {
+      const yearLabel = i + 1;
+      headHTML += `<th>第${yearLabel}年</th>`;
+      bodyHTML += `<td><input type="number" min="0" max="1" step="0.01" value="${(rates[i] || 0).toFixed(2)}" onchange="App.updateLoadRate(${i},this.value)"></td>`;
+    }
+    headRow.innerHTML = headHTML;
+    bodyRow.innerHTML = bodyHTML;
+  },
+
+  // 更新单个负荷率
+  updateLoadRate(index, value) {
+    const val = parseFloat(value) || 0;
+    if (this.data.revenue.loadRates[index] !== undefined) {
+      this.data.revenue.loadRates[index] = val;
+    }
+  },
+
+  // 批量填充负荷率
+  fillLoadRates(rate) {
+    const rates = this.data.revenue.loadRates;
+    for (let i = 0; i < rates.length; i++) {
+      rates[i] = rate;
+    }
+    this.renderLoadRates();
+  },
+
+  // 更新派生值（总投资、总成本等）
+  updateDerivedValues() {
+    const inv = this.data.investment;
+    const cost = this.data.cost;
+
+    // 建设投资合计（不含流动资金）
+    const constructionInvestment =
+      (parseFloat(inv.engineeringCost) || 0) +
+      (parseFloat(inv.otherCost) || 0) +
+      (parseFloat(inv.basicReserve) || 0) +
+      (parseFloat(inv.priceReserve) || 0) +
+      (parseFloat(inv.constructionInterest) || 0);
+
+    // 项目总投资
+    const totalProjectInvestment = constructionInvestment + (parseFloat(inv.workingCapital) || 0);
+
+    document.getElementById('totalConstructionInvestment').textContent = constructionInvestment.toFixed(2);
+    document.getElementById('totalProjectInvestment').textContent = totalProjectInvestment.toFixed(2);
+
+    // 正常年经营成本（不含折旧、摊销、利息）
+    const operatingCost =
+      (parseFloat(cost.rawMaterial) || 0) +
+      (parseFloat(cost.fuel) || 0) +
+      (parseFloat(cost.salary) || 0) +
+      (parseFloat(cost.repair) || 0) +
+      (parseFloat(cost.other) || 0);
+
+    // 年折旧费（以工程费用为固定资产原值）
+    const depreciation = Calculator.calculateDepreciation(
+      parseFloat(inv.engineeringCost) || 0,
+      parseFloat(cost.residualRate) || 0,
+      parseInt(cost.depreciationYears) || 1
+    );
+
+    const totalCost = operatingCost + depreciation + (parseFloat(cost.amortization) || 0);
+
+    document.getElementById('annualOperatingCost').textContent = operatingCost.toFixed(2);
+    document.getElementById('annualTotalCost').textContent = totalCost.toFixed(2);
+  },
+
+  // 自动计算利息等
+  autoCalc() {
+    const construction = parseInt(this.data.basic.constructionPeriod) || 0;
+    const loan = parseFloat(this.data.financing.loanAmount) || 0;
+    const rate = parseFloat(this.data.financing.loanRate) || 0;
+
+    // 计算建设期利息
+    if (construction > 0 && loan > 0) {
+      const interest = Calculator.calculateConstructionInterest(loan, rate, construction);
+      this.data.investment.constructionInterest = parseFloat(interest.toFixed(2));
+      document.getElementById('investment_constructionInterest').value = this.data.investment.constructionInterest;
+    }
+
+    // 计算借款金额（如果为0，则根据总投资和资本金比例推算）
+    const totalInvestment =
+      (parseFloat(this.data.investment.engineeringCost) || 0) +
+      (parseFloat(this.data.investment.otherCost) || 0) +
+      (parseFloat(this.data.investment.basicReserve) || 0) +
+      (parseFloat(this.data.investment.priceReserve) || 0) +
+      (parseFloat(this.data.investment.constructionInterest) || 0) +
+      (parseFloat(this.data.investment.workingCapital) || 0);
+
+    const capitalRatio = parseFloat(this.data.financing.capitalRatio) || 0;
+    const autoLoan = totalInvestment * (1 - capitalRatio);
+    if (loan === 0 && autoLoan > 0) {
+      this.data.financing.loanAmount = parseFloat(autoLoan.toFixed(2));
+      document.getElementById('financing_loanAmount').value = this.data.financing.loanAmount;
+    }
+
+    // 重新生成负荷率表格
+    this.generateLoadRates();
+    this.updateDerivedValues();
+    this.showMessage('success', '自动计算完成：已更新建设期利息、资金筹措及各年负荷率。');
+  },
+
+  // 保存到 localStorage
+  saveData() {
+    try {
+      this.syncFromForm();
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(this.data));
+      this.showMessage('success', '数据已保存到本地浏览器存储。');
+    } catch (e) {
+      this.showMessage('error', '保存失败：' + e.message);
+    }
+  },
+
+  // 从 localStorage 加载
+  loadData() {
+    try {
+      const stored = localStorage.getItem(STORAGE_KEY);
+      if (stored) {
+        this.data = JSON.parse(stored);
+        this.fillForm();
+        this.showMessage('success', '已加载上次保存的数据。');
+      } else {
+        this.showMessage('info', '暂无保存数据，已使用默认参数。');
+      }
+    } catch (e) {
+      this.showMessage('error', '加载失败：' + e.message);
+    }
+  },
+
+  // 重置数据
+  resetData() {
+    if (!confirm('确定要重置所有参数为默认值吗？')) return;
+    this.data = this.deepClone(ProjectData);
+    localStorage.removeItem(STORAGE_KEY);
+    this.fillForm();
+    this.generateLoadRates();
+    this.showMessage('success', '已重置为默认参数。');
+  },
+
+  // 从表单同步到数据模型
+  syncFromForm() {
+    const sections = ['basic', 'investment', 'financing', 'revenue', 'cost'];
+    sections.forEach(sec => {
+      const keys = Object.keys(this.data[sec]);
+      keys.forEach(key => {
+        const el = document.getElementById(`${sec}_${key}`);
+        if (!el) return;
+        let val = el.value;
+        if (el.type === 'number') val = parseFloat(val) || 0;
+        this.data[sec][key] = val;
+      });
+    });
+  },
+
+  // 导出 JSON 文件
+  exportJSON() {
+    this.syncFromForm();
+    const blob = new Blob([JSON.stringify(this.data, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = (this.data.basic.projectName || '项目') + '_参数.json';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    this.showMessage('success', '参数已导出为JSON文件。');
+  },
+
+  // 导入 JSON 文件
+  importJSON() {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = '.json';
+    input.onchange = (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        try {
+          const imported = JSON.parse(event.target.result);
+          this.data = { ...this.deepClone(ProjectData), ...imported };
+          this.fillForm();
+          this.renderLoadRates();
+          this.showMessage('success', '参数导入成功。');
+        } catch (err) {
+          this.showMessage('error', '导入失败：JSON格式错误。');
+        }
+      };
+      reader.readAsText(file);
+    };
+    input.click();
+  },
+
+  // 消息提示
+  showMessage(type, text) {
+    const box = document.getElementById('msgBox');
+    box.className = 'alert ' + type;
+    box.textContent = text;
+    setTimeout(() => { box.style.display = 'none'; }, 4000);
+  }
+};
+
+// 页面加载完成后初始化
+document.addEventListener('DOMContentLoaded', () => {
+  App.init();
+});
+</script>
+</body>
+</html>
